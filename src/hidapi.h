@@ -24,8 +24,9 @@
  * @defgroup API hidapi API
  */
 
-#ifndef HIDAPI_H__
-#define HIDAPI_H__
+//#ifndef HIDAPI_H__
+//#define HIDAPI_H__
+#pragma once
 
 #include <wchar.h>
 
@@ -387,5 +388,5 @@ extern "C" {
 }
 #endif
 
-#endif
+//#endif
 

@@ -52,24 +52,24 @@
 #define OSC_NUMSENDERS 4 // number of OSC sender to use in parallel
 
 #define SABRE_MAXNUMMESSAGES 64 // maximum number messages to allocate
-#define SABRE_STARTBYTE 0x41
-#define SABRE_STOPBYTE 0x5A
-#define SABRE_ADDRESSBYTE_LEFT 0xF0
-#define SABRE_ADDRESSBYTE_RIGHT 0xF1
-#define SABRE_ADDRESSBYTE_AIR 0xF2
+#define SABRE_STARTBYTE 0x41 // communication protocol start byte
+#define SABRE_STOPBYTE 0x5A // communication protocol stop byte
+#define SABRE_ADDRESSBYTE_LEFT 0xF0  // communication protocol address byte 1 (left hand)
+#define SABRE_ADDRESSBYTE_RIGHT 0xF1  // communication protocol address byte 2 (right hand)
+#define SABRE_ADDRESSBYTE_AIR 0xF2  // communication protocol address byte 3 (airMEMS)
 #define SABRE_PATTERNLEN_LEFT 23 // number of bytes in a left hand message
 #define SABRE_PATTERNLEN_RIGHT 42 // number of bytes in a right hand message
 #define SABRE_PATTERNLEN_AIR 15 // number of bytes in a airMEMS message
 #define SABRE_MAXPATTERNLEN SABRE_PATTERNLEN_RIGHT // maximum number of bytes in a SABRe message
-#define SABRE_INSTRUMENTNR 2 // instrument identification for correct button parsing
-							 // #1 -> first ICST instrument that went to Graz
-							 // #2 -> Matthias' instrument
-							 // #3 -> second ICST instrument
+#define SABRE_INSTRUMENTNR 2 /* instrument identification for correct button parsing
+							    #1 -> first ICST instrument that went to Graz
+							    #2 -> Matthias' instrument
+							    #3 -> second ICST instrument */
 
 #define SERVER_FILTERCHANGE // comment out in order to build without the redundancy check
 #define SERVER_CALIBRATEOFFSET 15 // value to add/remove to calibrated max/min to avoid key flattering at rest
 
-#define THREAD_SLEEPUS 5000 // sleep time (us) after thread stop to avoid error messages
+#define THREAD_STOPSLEEP_US 5000 // sleep time (us) after thread stop to avoid error messages
 
 class threadedHID : public ofThread
 {

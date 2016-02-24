@@ -70,10 +70,10 @@ bool ofxRawHID::openDevice()
 	//deviceSelected = true;
 	/* If no device has been selected, nothing to open */
     if(deviceSelected) {
-		long vendorID = selectedDeviceInfo.vendor_id;
-		long productID = selectedDeviceInfo.product_id;
-		long usagePage = selectedDeviceInfo.usage_page;
-		long usage = selectedDeviceInfo.usage;
+		int vendorID = selectedDeviceInfo.vendor_id;
+		int productID = selectedDeviceInfo.product_id;
+		int usagePage = selectedDeviceInfo.usage_page;
+		int usage = selectedDeviceInfo.usage;
         
 		if(appDebug) printf("[ofxRawHID::openDevice] Trying to open vid 0x%04x, pid 0x%04x, usagePage 0x%04x, usage 0x%04x\n", vendorID, productID, usagePage, usage);
 		selectedDeviceInfo.handle = hid_open(vendorID, productID, NULL);

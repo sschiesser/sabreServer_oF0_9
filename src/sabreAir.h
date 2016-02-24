@@ -36,6 +36,10 @@
 
 #pragma once
 
+/* Sample numbers at which airMEMS starts, resp.
+ * stops the ambient pressure measurement for
+ * point 0 calibration
+ */
 #define AIR_CALIBSTART 5
 #define AIR_CALIBSTOP 505
 

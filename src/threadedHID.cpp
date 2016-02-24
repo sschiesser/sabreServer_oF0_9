@@ -169,7 +169,7 @@ void threadedHID::start()
 {
 	startThread(true);   // blocking
     oldSystimeL = oldSystimeR = ofGetElapsedTimeMicros();
-	if (appDebug) printf("[threadedHID::start] starting thread... oldSystime = %d\n", oldSystimeL);
+	if (appDebug) printf("[threadedHID::start] starting thread... oldSystime = %ld\n", oldSystimeL);
 }
 
 //--------------------------------------------------------------
