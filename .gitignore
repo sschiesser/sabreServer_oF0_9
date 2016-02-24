@@ -1,9 +1,9 @@
-<<<<<<< HEAD
+# Own list
 *.sdf
 *.opendb
 *.tlog
-*.zip*.zip
-=======
+*.zip
+
 # Compiled Object files
 *.slo
 *.lo
@@ -32,4 +32,3 @@
 *.exe
 *.out
 *.app
->>>>>>> 966d64bcf253074dc8e6fdb711ba0630c35da9f0
