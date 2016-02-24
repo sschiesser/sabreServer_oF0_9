@@ -1,0 +1,277 @@
+<?xml version="1.0" ?>
+<sabre>
+    <rawHID>
+        <VID>0x1C57</VID>
+        <PID>0x5ABE</PID>
+        <manufacturername>ICST</manufacturername>
+        <productname>SABRe</productname>
+    </rawHID>
+    <framerate>10</framerate>
+    <!-- display framerate -->
+    <OSCsender>
+        <interval>4</interval>
+        <!-- OSC sending interval -->
+        <sendRawValues>1</sendRawValues>
+        <!-- include raw values in OSC stream -->
+    </OSCsender>
+    <network>
+        <sender id="1">
+            <IP>localhost</IP>
+            <port>40002</port>
+            <active>1</active>
+            <!-- activate this OSC sender -->
+        </sender>
+        <sender id="2">
+            <IP>127.0.0.1</IP>
+            <port>57120</port>
+            <active>1</active>
+            <mode>16</mode>
+            <!-- change the OSC sending mode -->
+        </sender>
+        <sender id="3">
+            <IP>127.0.0.1</IP>
+            <port>40003</port>
+            <active>0</active>
+        </sender>
+        <sender id="4">
+            <IP>127.0.0.1</IP>
+            <port>40004</port>
+            <active>0</active>
+        </sender>
+        <receiver>
+            <port>41003</port>
+        </receiver>
+    </network>
+    <thresholds>
+        <down>0.45</down>
+        <up>0.55</up>
+    </thresholds>
+    <debounce-timeout>0</debounce-timeout>
+    <accel-resolution>4</accel-resolution>
+    <!-- 2g/4g/8g/16g 10/11/12/13bit resolution -->
+    <key id="1">
+        <oscaddress>/sabre/key/1</oscaddress>
+        <invert>1</invert>
+        <!--<threshold>
+            <up>0.90</up>
+            <down>0.20</down>
+        </threshold>-->
+        <minimum>694</minimum>
+        <maximum>916</maximum>
+    </key>
+    <key id="2">
+        <oscaddress>/sabre/key/2</oscaddress>
+        <invert>1</invert>
+        <minimum>719</minimum>
+        <maximum>943</maximum>
+    </key>
+    <key id="3">
+        <oscaddress>/sabre/key/3</oscaddress>
+        <invert>0</invert>
+        <minimum>101</minimum>
+        <maximum>341</maximum>
+    </key>
+    <key id="4">
+        <oscaddress>/sabre/key/4</oscaddress>
+        <invert>0</invert>
+        <minimum>75</minimum>
+        <maximum>421</maximum>
+    </key>
+    <key id="5">
+        <oscaddress>/sabre/key/5</oscaddress>
+        <invert>1</invert>
+        <minimum>624</minimum>
+        <maximum>881</maximum>
+    </key>
+    <key id="6">
+        <oscaddress>/sabre/key/6</oscaddress>
+        <invert>0</invert>
+        <minimum>155</minimum>
+        <maximum>413</maximum>
+    </key>
+    <key id="7">
+        <oscaddress>/sabre/key/7</oscaddress>
+        <invert>0</invert>
+        <minimum>98</minimum>
+        <maximum>429</maximum>
+    </key>
+    <key id="8">
+        <oscaddress>/sabre/key/8</oscaddress>
+        <invert>0</invert>
+        <minimum>63</minimum>
+        <maximum>442</maximum>
+    </key>
+    <key id="9">
+        <oscaddress>/sabre/key/9</oscaddress>
+        <invert>0</invert>
+        <minimum>30</minimum>
+        <maximum>391</maximum>
+    </key>
+    <key id="10">
+        <oscaddress>/sabre/key/10</oscaddress>
+        <invert>0</invert>
+        <minimum>91</minimum>
+        <maximum>288</maximum>
+    </key>
+    <key id="11">
+        <oscaddress>/sabre/key/11</oscaddress>
+        <invert>0</invert>
+        <minimum>50</minimum>
+        <maximum>293</maximum>
+    </key>
+    <key id="12">
+        <oscaddress>/sabre/key/12</oscaddress>
+        <invert>1</invert>
+        <minimum>639</minimum>
+        <maximum>952</maximum>
+    </key>
+    <key id="13">
+        <oscaddress>/sabre/key/13</oscaddress>
+        <invert>1</invert>
+        <minimum>583</minimum>
+        <maximum>888</maximum>
+    </key>
+    <key id="14">
+        <oscaddress>/sabre/key/14</oscaddress>
+        <invert>0</invert>
+        <minimum>86</minimum>
+        <maximum>440</maximum>
+    </key>
+    <key id="15">
+        <oscaddress>/sabre/key/15</oscaddress>
+        <invert>0</invert>
+        <minimum>50</minimum>
+        <maximum>376</maximum>
+    </key>
+    <key id="16">
+        <oscaddress>/sabre/key/16</oscaddress>
+        <invert>0</invert>
+        <minimum>63</minimum>
+        <maximum>433</maximum>
+    </key>
+    <key id="17">
+        <oscaddress>/sabre/key/17</oscaddress>
+        <invert>0</invert>
+        <minimum>30</minimum>
+        <maximum>393</maximum>
+    </key>
+    <key id="18">
+        <oscaddress>/sabre/key/18</oscaddress>
+        <invert>0</invert>
+        <minimum>46</minimum>
+        <maximum>400</maximum>
+    </key>
+    <key id="19">
+        <oscaddress>/sabre/key/19</oscaddress>
+        <invert>0</invert>
+        <minimum>63</minimum>
+        <maximum>466</maximum>
+    </key>
+    <key id="20">
+        <oscaddress>/sabre/key/20</oscaddress>
+        <invert>1</invert>
+        <minimum>624</minimum>
+        <maximum>905</maximum>
+    </key>
+    <key id="21">
+        <oscaddress>/sabre/key/21</oscaddress>
+        <invert>1</invert>
+        <minimum>624</minimum>
+        <maximum>920</maximum>
+    </key>
+    <key id="22">
+        <oscaddress>/sabre/key/22</oscaddress>
+        <invert>0</invert>
+        <!--        <threshold>
+            <up>0.80</up>
+            <down>0.70</down>
+        </threshold> -->
+        <minimum>46</minimum>
+        <maximum>400</maximum>
+    </key>
+    <key id="23">
+        <oscaddress>/sabre/key/23</oscaddress>
+        <invert>0</invert>
+        <!--        <threshold>
+            <up>0.80</up>
+            <down>0.70</down>
+        </threshold> -->
+        <minimum>78</minimum>
+        <maximum>417</maximum>
+    </key>
+    <key id="24">
+        <oscaddress>/sabre/key/24</oscaddress>
+        <invert>0</invert>
+        <minimum>111</minimum>
+        <maximum>466</maximum>
+    </key>
+    <key id="25">
+        <oscaddress>/sabre/key/25</oscaddress>
+        <invert>0</invert>
+        <minimum>267</minimum>
+        <maximum>472</maximum>
+    </key>
+    <imu id="0">
+        <oscaddress>/sabre/motion/accelero/scaled</oscaddress>
+    </imu>
+    <imu id="1">
+        <oscaddress>/sabre/motion/gyro/scaled</oscaddress>
+    </imu>
+    <imu id="2">
+        <oscaddress>/sabre/motion/magneto/scaled</oscaddress>
+    </imu>
+    <imu id="3">
+        <oscaddress>/sabre/motion/accelero/raw</oscaddress>
+    </imu>
+    <imu id="4">
+        <oscaddress>/sabre/motion/gyro/raw</oscaddress>
+    </imu>
+    <imu id="5">
+        <oscaddress>/sabre/motion/magneto/raw</oscaddress>
+    </imu>
+    <imu id="6">
+        <oscaddress>/sabre/motion/accelero/sum</oscaddress>
+    </imu>
+    <imu id="7">
+        <oscaddress>/sabre/motion/gyro/sum</oscaddress>
+    </imu>
+    <imu id="8">
+        <oscaddress>/sabre/motion/magneto/sum</oscaddress>
+    </imu>
+    <imu id="9">
+        <oscaddress>/sabre/motion/gyro/temperature</oscaddress>
+    </imu>
+    <imu id="10">
+        <oscaddress>/sabre/motion/heading</oscaddress>
+    </imu>
+    <imu id="11">
+        <oscaddress>/sabre/motion/tilt</oscaddress>
+    </imu>
+    <button id="0">
+        <oscaddress>/sabre/button/1</oscaddress>
+    </button>
+    <button id="1">
+        <oscaddress>/sabre/button/2</oscaddress>
+    </button>
+    <button id="2">
+        <oscaddress>/sabre/button/3</oscaddress>
+    </button>
+    <air id="0">
+        <oscaddress>/sabre/air/pressure</oscaddress>
+        <minimum>41.000000000</minimum>
+        <maximum>120.000000000</maximum>
+    </air>
+    <air id="1">
+        <oscaddress>/sabre/air/temperature</oscaddress>
+    </air>
+    <system>
+        <oscaddress>/sabre/systime</oscaddress>
+    </system>
+    <keycode>
+        <oscaddress>/sabre/keycode</oscaddress>
+    </keycode>
+    <midinote>
+        <oscaddress>/sabre/note</oscaddress>
+    </midinote>
+    <display>1</display>
+</sabre>
