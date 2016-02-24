@@ -45,16 +45,19 @@
 //#include <stdarg.h>
 
 #include "ofMain.h"
-#include <hidapi.h>
- 
+
+
 #define HID_BUFFERSIZE 64 // max buffer size for read & write
 #define HID_MAXNUMDEVICES 32 // max number of device to be enumerated
 
 // OS-specific includes
-EXTERN_C {
+extern "C" {
 	#ifdef _WIN64 // windows (64-bit)
+        #include <hidapi.h>
 	#elif _WIN32 // windows (32-bit)
+        #include <hidapi.h>
 	#elif __APPLE__ // apple
+        #include "hidapi.h"
 //   #include "TargetConditionals.h"
 //   #include <sys/ioctl.h>
 //   #include <termios.h>

@@ -49,9 +49,11 @@ int main() {
 	ofAppGlutWindow window;
 	ofSetupOpenGL(1024, 768, OF_WINDOW);				// <-------- setup the GL context
 
-/* If compiling in release mode, disable the console window*/
+/* If compiling in release mode (VisualStudio), disable the console window */
+#ifdef WIN32
 #ifndef _DEBUG
 	FreeConsole();
+#endif
 #endif
 
 	// this kicks off the running of my app

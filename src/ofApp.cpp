@@ -492,14 +492,18 @@ bool ofApp::readPrefs()
 		const size_t tempLen1 = (strlen(tempStr1.c_str()) + 1) * 2;
 		size_t convChars1 = 0;
 		wchar_t *tempWStr1 = new wchar_t[tempLen1];
-		mbstowcs_s(&convChars1, tempWStr1, tempLen1, tempStr1.c_str(), _TRUNCATE);
+        mbstowcs(tempWStr1, tempStr1.c_str(), tempLen1);
+        // VisualStudio issue... to check
+//		mbstowcs_s(&convChars1, tempWStr1, tempLen1, tempStr1.c_str(), _TRUNCATE);
 		rawHIDobject->rawHID.selectedDeviceInfo.manufacturer_string = tempWStr1;
 		
 		string tempStr2 = XML.getValue("sabre:rawHID:productname", "SABRe");
 		const size_t tempLen2 = (strlen(tempStr2.c_str()) + 1) * 2;
 		size_t convChars2 = 0;
 		wchar_t *tempWStr2 = new wchar_t[tempLen2];
-		mbstowcs_s(&convChars2, tempWStr2, tempLen2, tempStr2.c_str(), _TRUNCATE);
+        mbstowcs(tempWStr2, tempStr2.c_str(), tempLen2);
+        // VisualStudio issue... to check
+//        mbstowcs_s(&convChars2, tempWStr2, tempLen2, tempStr2.c_str(), _TRUNCATE);
 		rawHIDobject->rawHID.selectedDeviceInfo.product_string = tempWStr2;
 		//rawHIDobject->rawHID.selectedDeviceInfo.manufacturerName = XML.getValue("sabre:rawHID:manufacturername", "ICST");
 		//rawHIDobject->rawHID.selectedDeviceInfo.productName = XML.getValue("sabre:rawHID:productname", "SABRe");
