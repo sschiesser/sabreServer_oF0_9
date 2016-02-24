@@ -64,8 +64,8 @@ void ofApp::setup() {
 	ofEnableAlphaBlending(); // turn on alpha blending
 	TTF.loadFont("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
 	TTFsmall.loadFont("lucidagrande.ttf", 8, 1, 0, 0);
-	//rawHIDobject->TTF.loadFont("lucidagrande.ttf", 8, 1, 1, 0);
 	texScreen.allocate(440, 700, GL_RGB); // allocate a texture to the given dimensions
+    ofSetWindowTitle(titleString); // set window title
 	windowChanged = true; // flag to activate a window refresh
 	drawValues = true; // flag to activate a values redraw
 	rawHIDobject->drawValues = 0; // ?
@@ -312,7 +312,14 @@ bool ofApp::startHID()
 //--------------------------------------------------------------
 void ofApp::stopHID()
 {
-	/* Close the HID device if open */
+    /* First stop the HID/OSCsender thread to avoid error message */
+    while (rawHIDobject->isThreadRunning()) {
+        rawHIDobject->stop();
+        usleep(5000);
+//        stopOSC();
+    }
+
+	/* Then close the HID device if open */
 	if (rawHIDobject->rawHID.deviceOpen) {
 		bool ret = rawHIDobject->rawHID.closeDevice();
 		if (ret) {
@@ -323,13 +330,6 @@ void ofApp::stopHID()
 			if (appDebug) printf("[ofApp::stopHID] HID device closing error!!\n");
 		}
 	}
-
-	/* Stop then the HID/OSCsender thread */
-	if (rawHIDobject->isThreadRunning()) {
-		rawHIDobject->stop();
-		stopOSC();
-	}
-
 	/* Update GUI */
 	redrawFlag = 1;
 }
@@ -369,12 +369,14 @@ int ofApp::startOSC()
 
 	redrawFlag = 1;
 
+    if(appDebug) printf("[ofApp::startOSC] OSC sender started... %d active senders\n", retVal);
 	return retVal;
 }
 
 //--------------------------------------------------------------
 void ofApp::stopOSC()
 {
+    if(appDebug) printf("[ofApp::stopOSC] clearing OSC open flag\n");
 	rawHIDobject->OSCsenderOpen = false;
 }
 
@@ -1011,7 +1013,7 @@ void ofApp::mousePressed(int x, int y, int button){
 			else {
 				stopHID();
 				int num = startOSC();
-				if (appDebug) printf("[ofApp::mousePressed] %d OSC sender(s) started\n", num);
+//				if (appDebug) printf("[ofApp::mousePressed] %d OSC sender(s) started\n", num);
 				if (num > 0) {
 					/* If HID thread start did not work, stop previously opened OSC senders,
 					 * and reset the flags in order to re-start an enumeration */

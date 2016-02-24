@@ -38,7 +38,6 @@
 #define _THREADED_HID
 
 #include "ofMain.h"
-//#include "ofApp.h"
 
 #include "ofxOsc.h"
 #include "ofxXmlSettings.h"
@@ -69,6 +68,8 @@
 
 #define SERVER_FILTERCHANGE // comment out in order to build without the redundancy check
 #define SERVER_CALIBRATEOFFSET 15 // value to add/remove to calibrated max/min to avoid key flattering at rest
+
+#define THREAD_SLEEPUS 5000 // sleep time (us) after thread stop to avoid error messages
 
 class threadedHID : public ofThread
 {
