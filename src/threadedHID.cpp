@@ -217,8 +217,9 @@ void threadedHID::threadedFunction()
             if(OSCtime >= (OSCprevTime + OSCsendingInterval) ) {
                 
                 for(int i = 0; i < OSC_NUMSENDERS; i++) {
+                    if(appDebug) printf("[threadedHID::threadedFunction] Sender# %d, active: %s, lastOSCSender %d\n", i, (senderActive[i] ? "YES" : "NO"), lastOSCSender);
                     if(senderActive[i]) {
-                        if(i == resetID) {
+                        if(i == lastOSCSender) {
                             sendOSC( i, true );
                         } else {
                             sendOSC( i, false );
@@ -430,7 +431,8 @@ void threadedHID::parseLeft()
 		}
         
         /* Calculate time difference since last left-hand parsing */
-        systimeL = ofGetElapsedTimeMillis();
+//        systimeL = ofGetElapsedTimeMillis();
+        systimeL = ofGetElapsedTimeMicros();
         deltaTimeL = systimeL - oldSystimeL;
         oldSystimeL = systimeL;
 	}
@@ -530,7 +532,8 @@ void threadedHID::parseRight()
         // NOTE: IMU parsing is done in separate function using same input buffer
         
 		/* Calculate time difference since last right-hand parsing */
-		systimeR = ofGetElapsedTimeMillis();
+//		systimeR = ofGetElapsedTimeMillis();
+        systimeR = ofGetElapsedTimeMicros();
 		deltaTimeR = systimeR - oldSystimeR;
 		oldSystimeR = systimeR;
 
@@ -719,8 +722,8 @@ void threadedHID::calcHeadingTilt()
 	y = (IMU[2] - 0.5) * DEG_TO_RAD;
 	
 	// old = old + (new - old) * factor;
-	x = headingOld_x + ((x - headingOld_x) * 0.2);
-	y = headingOld_y + ((y - headingOld_y) * 0.2);
+	x = headingOld_x + ((x - headingOld_x) * 0.3);
+	y = headingOld_y + ((y - headingOld_y) * 0.3);
 	
 	headingOld_x = x;
 	headingOld_y = y;
@@ -734,8 +737,10 @@ void threadedHID::calcHeadingTilt()
 	by = tan(y);
 	by = by * by;
 	
-	heading = atan2(ax, ay) * RAD_TO_DEG;
+//    heading = atan2(ax, ay) * RAD_TO_DEG;
+    heading = ((SABRE_IMUANGLEOFFSET * DEG_TO_RAD) + atan2(ax, ay)) * RAD_TO_DEG;
 	tilt = CLAMP( (atan( sqrt(bx + by) ) * RAD_TO_DEG * 8.0), 0.0, 1.0);
+    if(appDebug) printf("[threadedHID::calcHeadingTilt] Heading: %f, tilt: %f\n", heading, tilt);
 	//	tilt = atan( sqrt(bx + by) ) * RAD_TO_DEG * 10.0;
 }
 
@@ -743,12 +748,21 @@ void threadedHID::calcHeadingTilt()
 void threadedHID::sendOSC(int ID, bool resetFlags)
 {
     int i, j;
-    //char tempBuf[20];
-    
+    if(appDebug) {
+        double now = ofGetElapsedTimeMicros();
+        if(ID == 0) {
+            sendDelta = 0;
+        }
+        else {
+            sendDelta += (now - oldSendTS);
+        }
+        oldSendTS = now;
+        printf("[threadedHID::sendOSC] entering function... delta to 1st sender (ms): %0.3f\n", (0.001 * sendDelta));
+    }
     /* Standard data-mode */
     if( (senderMode[ID] & 1) == 1) {
 		
-		//if(appDebug) printf("[threadedHID::sendOSC] sending OSC on %d with reset %d\n", ID, resetFlags);
+//		if(appDebug) printf("[threadedHID::sendOSC] sending OSC on sender# %d with reset %d\n", ID, resetFlags);
 		/* Get the latest timestamp */
 		systemTimestamp = ofGetElapsedTimeMillis();
 		
@@ -1033,13 +1047,13 @@ void threadedHID::sendOSC(int ID, bool resetFlags)
 }
 
 //--------------------------------------------------------------
-void threadedHID::calcResetID()
+void threadedHID::calcLastSender()
 {
-    resetID = -1;
+    lastOSCSender = -1;
     for(int i = 0; i < OSC_NUMSENDERS; i++) {
         if(senderActive[i] == 1){
-            resetID = i;
+            lastOSCSender = i;
         }
     }
-    if(appDebug) printf("[threadedHID::calcResetID] resetID is %d\n", resetID);
+    if(appDebug) printf("[threadedHID::calcLastSender] lastOSCSender is %d\n", lastOSCSender);
 }

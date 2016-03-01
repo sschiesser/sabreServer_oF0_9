@@ -61,10 +61,11 @@
 #define SABRE_PATTERNLEN_RIGHT 42 // number of bytes in a right hand message
 #define SABRE_PATTERNLEN_AIR 15 // number of bytes in a airMEMS message
 #define SABRE_MAXPATTERNLEN SABRE_PATTERNLEN_RIGHT // maximum number of bytes in a SABRe message
-#define SABRE_INSTRUMENTNR 2 /* instrument identification for correct button parsing
+#define SABRE_INSTRUMENTNR 3 /* instrument identification for correct button parsing
 							    #1 -> first ICST instrument that went to Graz
 							    #2 -> Matthias' instrument
 							    #3 -> second ICST instrument */
+#define SABRE_IMUANGLEOFFSET 59 //
 
 #define SERVER_FILTERCHANGE // comment out in order to build without the redundancy check
 #define SERVER_CALIBRATEOFFSET 15 // value to add/remove to calibrated max/min to avoid key flattering at rest
@@ -91,7 +92,7 @@ public:
 	void calcKeycode();
 	void calcHeadingTilt();
 	void sendOSC(int ID, bool resetFlags);
-	void calcResetID();
+	void calcLastSender();
 
 	/* --------------- *
 	* MEMBER VARIABLES *
@@ -108,12 +109,12 @@ public:
 	//ofTrueTypeFont TTF;
 
 	// OSCsender (!!) variables
-	ofxOscSender sender[OSC_NUMSENDERS];
-    bool senderActive[OSC_NUMSENDERS];
-    int senderMode[OSC_NUMSENDERS];
-    string sendIP[OSC_NUMSENDERS];
-	int sendport[OSC_NUMSENDERS];
-    int resetID;
+	ofxOscSender sender[OSC_NUMSENDERS]; // the OSC senders...
+    bool senderActive[OSC_NUMSENDERS]; // flag for active/non-active senders
+    int senderMode[OSC_NUMSENDERS]; // OSC sender mode. Currently 2 modes available: 1 (normal mode) and 16 (c_setn mode for IEM Graz)
+    string sendIP[OSC_NUMSENDERS]; // OSC sender IP address
+	int sendport[OSC_NUMSENDERS]; // OSC sender UDP port
+    int lastOSCSender; // number of the last active OSC sender
 	bool OSCsenderOpen; // flag for OSC sender status
     ofxOscMessage m[OSC_FRAMELENGTH]; // static amount of messages in one dataframe
 	int OSCsendingInterval; // OSC time interval for sending data
@@ -122,6 +123,8 @@ public:
 	int numOSCloops; // TBD...
 	bool sendFullFrame; // toggle whole sensor values OSC sending
 	bool sendRawValues; // toggle raw values OSC sending (bandwidth management)
+    double oldSendTS;
+    double sendDelta;
 
 	// OSC sender addresses
 	string imuaddresses[12];

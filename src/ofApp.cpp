@@ -539,8 +539,8 @@ bool ofApp::readPrefs()
 			XML.popTag();
 			XML.popTag();
 		}
-		rawHIDobject->calcResetID();
-		//if(appDebug) printf("calcResetID exited\n");
+		rawHIDobject->calcLastSender();
+//		if(appDebug) printf("calcLastSender exited\n");
 
 		receiveport = XML.getValue("sabre:network:receiver:port", 40001);
 
