@@ -43,7 +43,6 @@
 #include "ofxXmlSettings.h"
 
 #include "sabreKeys.h"
-//#include "sabreMidiNote.h"
 #include "sabreAir.h"
 
 #include "ofxRawHID.h"
@@ -65,12 +64,19 @@
 							    #1 -> first ICST instrument that went to Graz
 							    #2 -> Matthias' instrument
 							    #3 -> second ICST instrument */
-#define SABRE_IMUANGLEOFFSET 59 //
+
+#define SABRE_IMU_ACCELXPOS 1 // position in the raw input array of the x acceleration value (IMU[0])
+#define SABRE_IMU_ACCELYPOS 2 // position in the raw input array of the y acceleration value (IMU[1])
+#define SABRE_IMU_ACCELZPOS 0 // position in the raw input array of the z acceleration value (IMU[2])
+#define SABRE_IMU_ACCELXSIGN 0 //
+#define SABRE_IMU_ACCELYSIGN 1 //
+#define SABRE_IMU_ACCELZSIGN 1 //
+#define SABRE_IMU_ANGLEOFFSET 59 // set offset angle (in ¡) to get the heading 0/±180 along the player/neck/bell direction
 
 #define SERVER_FILTERCHANGE // comment out in order to build without the redundancy check
 #define SERVER_CALIBRATEOFFSET 15 // value to add/remove to calibrated max/min to avoid key flattering at rest
 
-#define THREAD_STOPSLEEP_US 5000 // sleep time (us) after thread stop to avoid error messages
+#define THREAD_STOPSLEEP_US 10000 // sleep time (us) after thread stop to avoid error messages
 
 class threadedHID : public ofThread
 {

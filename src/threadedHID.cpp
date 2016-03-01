@@ -567,9 +567,16 @@ void threadedHID::parseIMU()
 				raw[i] -= 65535;
 			}
 			rawIMU[i] = raw[i] + accelOffset; // accelOffset = 0.5 * 2^16 = 32768
-			IMU[i] = rawIMU[i] * accelScale; // accelScale = 16 bit (since v3.5)
-			IMU[i] = CLAMP(IMU[i], 0.0 , 1.0);
+//			IMU[i] = rawIMU[i] * accelScale; // accelScale = 16 bit (since v3.5)
+//			IMU[i] = CLAMP(IMU[i], 0.0 , 1.0);
 		}
+        IMU[0] = rawIMU[SABRE_IMU_ACCELXPOS] * accelScale;
+        IMU[0] = CLAMP(IMU[0], 0.0, 1.0);
+        IMU[1] = rawIMU[SABRE_IMU_ACCELYPOS] * accelScale;
+        IMU[1] = CLAMP(IMU[1], 0.0, 1.0);
+        IMU[2] = rawIMU[SABRE_IMU_ACCELZPOS] * accelScale;
+        IMU[2] = CLAMP(IMU[2], 0.0, 1.0);
+        
 		// gyroscope
 		for(int i = 3; i < 6; i++) {
 			// correct sign
@@ -712,22 +719,43 @@ void threadedHID::calcKeycode()
 //--------------------------------------------------------------
 void threadedHID::calcHeadingTilt()
 {
-	double x, y;
-	double ax, ay, bx, by;
+//    double x, y, z;
+//    double xx, yy, zz;
+//    double xAcc, yAcc, zAcc;
+//    double pitch, roll;
+    
+//    x = IMU[0] - 0.5;
+//    y = IMU[1] - 0.5;
+//    z = IMU[2] - 0.5;
+//    
+//    xx = x * x;
+//    yy = y * y;
+//    zz = z * z;
+    
+//    xAcc = x * 8.0 * (SABRE_IMU_ACCELXSIGN ? -1 : 1);
+//    yAcc = y * 8.0 * (SABRE_IMU_ACCELYSIGN ? -1 : 1);
+//    zAcc = z * 8.0 * (SABRE_IMU_ACCELZSIGN ? -1 : 1);
+    
+//    pitch = ((atan(xAcc/sqrt(pow(yAcc, 2) + pow(zAcc, 2))) * RAD_TO_DEG));
+//    roll = (atan(yAcc/sqrt(pow(xAcc, 2) + pow(zAcc, 2))) * RAD_TO_DEG);
+//    printf("[threadedHID::calcHeadingTilt] IMU values:\n- x %f\n- y %f\n- z %f\n- pitch %f\n- roll %f\n", xAcc, yAcc, zAcc, pitch, roll);
 	
+    double x, y, z;
+    double ax, ay, bx, by;
+
 	/* 0g --> IMU[] = 0.5
 	 * thus re-center values around 0
 	 * and change angles to radian */
-	x = (IMU[1] - 0.5) * DEG_TO_RAD;
-	y = (IMU[2] - 0.5) * DEG_TO_RAD;
+	x = (IMU[0] - 0.5) * DEG_TO_RAD;
+	y = (IMU[1] - 0.5) * DEG_TO_RAD;
 	
-	// old = old + (new - old) * factor;
-	x = headingOld_x + ((x - headingOld_x) * 0.3);
-	y = headingOld_y + ((y - headingOld_y) * 0.3);
+//	 old = old + (new - old) * factor;
+	x = headingOld_x + ((x - headingOld_x) * 0.2);
+	y = headingOld_y + ((y - headingOld_y) * 0.2);
 	
 	headingOld_x = x;
 	headingOld_y = y;
-	
+
 	ax = sin(x);
 	ay = sin(y);
 	
@@ -738,10 +766,13 @@ void threadedHID::calcHeadingTilt()
 	by = by * by;
 	
 //    heading = atan2(ax, ay) * RAD_TO_DEG;
-    heading = ((SABRE_IMUANGLEOFFSET * DEG_TO_RAD) + atan2(ax, ay)) * RAD_TO_DEG;
+    heading = ((SABRE_IMU_ANGLEOFFSET * DEG_TO_RAD) + atan2(ax, ay)) * RAD_TO_DEG;
+    if(heading > 180.0) heading = -180.0 + (heading - 180.0);
+    else if(heading < -180.0) heading = 180 + (heading + 180.0);
 	tilt = CLAMP( (atan( sqrt(bx + by) ) * RAD_TO_DEG * 8.0), 0.0, 1.0);
+//    if((tilt >= 0.0) && (tilt <= 0.02)) heading = 0.0;
     if(appDebug) printf("[threadedHID::calcHeadingTilt] Heading: %f, tilt: %f\n", heading, tilt);
-	//	tilt = atan( sqrt(bx + by) ) * RAD_TO_DEG * 10.0;
+//	//	tilt = atan( sqrt(bx + by) ) * RAD_TO_DEG * 10.0;
 }
 
 //--------------------------------------------------------------

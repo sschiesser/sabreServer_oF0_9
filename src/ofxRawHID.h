@@ -58,26 +58,16 @@ extern "C" {
         #include <hidapi.h>
 	#elif __APPLE__ // apple
         #include "hidapi.h"
-//   #include "TargetConditionals.h"
-//   #include <sys/ioctl.h>
-//   #include <termios.h>
-//   #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
-//	// define something for simulator   
-//   #elif TARGET_OS_IPHONE
-//	// define something for iphone  
-//   #else
-//   #define TARGET_OS_OSX 1
-//	// define something for OSX
-//   #endif
+    
+        #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
+        #elif TARGET_OS_IPHONE
+        #else
+        #define TARGET_OS_OSX 1
+        #endif
+    
 	#elif __linux // linux
-//   #include <sys/ioctl.h>
-//   #include <termios.h>
 	#elif __unix // all unices not caught above
-//   #include <sys/ioctl.h>
-//   #include <termios.h>
 	#elif __posix // POSIX
-//   #include <sys/ioctl.h>
-//   #include <termios.h>
 	#endif
 }
 
