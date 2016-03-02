@@ -1,81 +1,107 @@
-/*
- *  threadedHID.h
+#pragma once
+/****************************************************************************
+ * Copyright (c) 2016 Zurich University of the Arts. All Rights Reserved.
  *
- *  Copyright Â© 2014 Zurich University of the Arts. All Rights Reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice,
- *  this list of conditions and the following disclaimer.
- *
- *  2. Redistributions in binary form must reproduce the above copyright
- *  notice, this list of conditions and the following disclaimer in the
- *  documentation and/or other materials provided with the distribution.
- *
- *  3. The name of the author may not be used to endorse or promote products
- *  derived from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
- *  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- *  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * This file is part of sabreServer
  *
  *
- *  @author Jan Schacher
- *  @@date 20140727
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * 3. The name of the author may not be used to endorse or promote products
+ * derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * \file threadedHID.h
+ 
+ * \author Jan Schacher
+ * \author Sebastien Schiesser
+ 
+ * \date 2 March 2016
+ 
+ * \version 0.99
+ 
  */
 
 
-#ifndef _THREADED_HID
-#define _THREADED_HID
-
+/* --------------------------------------------------------------
+ *     INCLUDES
+ * -------------------------------------------------------------- */
 #include "ofMain.h"
-//#include "ofApp.h"
-
 #include "ofxOsc.h"
 #include "ofxXmlSettings.h"
-
-#include "sabreKeys.h"
-//#include "sabreMidiNote.h"
-#include "sabreAir.h"
-
 #include "ofxRawHID.h"
 
+#include "sabreKeys.h"
+#include "sabreAir.h"
+
+/* --------------------------------------------------------------
+ *     MACROS
+ * -------------------------------------------------------------- */
+/* OSC */
 #define OSC_FRAMELENGTH 105
 #define OSC_NUMSENDERS 4 // number of OSC sender to use in parallel
 
+/* SABRe communication */
 #define SABRE_MAXNUMMESSAGES 64 // maximum number messages to allocate
-#define SABRE_STARTBYTE 0x41
-#define SABRE_STOPBYTE 0x5A
-#define SABRE_ADDRESSBYTE_LEFT 0xF0
-#define SABRE_ADDRESSBYTE_RIGHT 0xF1
-#define SABRE_ADDRESSBYTE_AIR 0xF2
+#define SABRE_STARTBYTE 0x41 // communication protocol start byte
+#define SABRE_STOPBYTE 0x5A // communication protocol stop byte
+#define SABRE_ADDRESSBYTE_LEFT 0xF0  // communication protocol address byte 1 (left hand)
+#define SABRE_ADDRESSBYTE_RIGHT 0xF1  // communication protocol address byte 2 (right hand)
+#define SABRE_ADDRESSBYTE_AIR 0xF2  // communication protocol address byte 3 (airMEMS)
 #define SABRE_PATTERNLEN_LEFT 23 // number of bytes in a left hand message
 #define SABRE_PATTERNLEN_RIGHT 42 // number of bytes in a right hand message
 #define SABRE_PATTERNLEN_AIR 15 // number of bytes in a airMEMS message
 #define SABRE_MAXPATTERNLEN SABRE_PATTERNLEN_RIGHT // maximum number of bytes in a SABRe message
-#define SABRE_INSTRUMENTNR 2 // instrument identification for correct button parsing
-							 // #1 -> first ICST instrument that went to Graz
-							 // #2 -> Matthias' instrument
-							 // #3 -> second ICST instrument
 
+/* SABRe IMU */
+#define SABRE_IMU_ACCELXPOS 1 // position in the raw input array of the x acceleration value (IMU[0])
+#define SABRE_IMU_ACCELYPOS 2 //       -               "                -                    (IMU[1])
+#define SABRE_IMU_ACCELZPOS 0 //       -               "                -                    (IMU[2])
+#define SABRE_IMU_ACCELXSIGN 0 // flags to determine if the IMU axes are built in reverse direction to the SABRe coordinates
+#define SABRE_IMU_ACCELYSIGN 1
+#define SABRE_IMU_ACCELZSIGN 1
+#define SABRE_IMU_REFRESHFACTOR 0.2 // Ponderation factor to reduce jittering on heading & tile values
+#define SABRE_IMU_ANGLEOFFSET 59 // set offset angle (in ¡) to get the heading 0/±180 along the player/neck/bell direction
+
+/* SABRe keys & buttons */
 #define SERVER_FILTERCHANGE // comment out in order to build without the redundancy check
 #define SERVER_CALIBRATEOFFSET 15 // value to add/remove to calibrated max/min to avoid key flattering at rest
+#define SABRE_INSTRUMENTNR 3 /* instrument identification for correct button parsing
+                                #1 -> first ICST instrument that went to Graz
+                                #2 -> Matthias' instrument
+                                #3 -> second ICST instrument */
 
+/* Application */
+#define THREAD_STOPSLEEP_US 10000 // sleep time (us) after thread stop to avoid error messages
+
+
+/* --------------------------------------------------------------
+ *     CLASS DECLARATIONS
+ * -------------------------------------------------------------- */
 class threadedHID : public ofThread
 {
 public:
-	/* ---------------- *
-	 * MEMBER FUNCTIONS *
-	 * ----------------- */
 	threadedHID();
 	~threadedHID();
 	
@@ -90,29 +116,21 @@ public:
 	void calcKeycode();
 	void calcHeadingTilt();
 	void sendOSC(int ID, bool resetFlags);
-	void calcResetID();
+	void calcLastSender();
 
-	/* --------------- *
-	* MEMBER VARIABLES *
-	* ---------------- */
-	// wrapping class to the hidapi functions
-	ofxRawHID rawHID;
+	ofxRawHID rawHID; ///< wrapping class to the hidapi functions
 	unsigned char hidBuf[64];
 
-	// XML settings variables
-	ofxXmlSettings	XML;
+	ofxXmlSettings	XML; ///< XML settings variables
 	string str1;
 
-	// display & GUI variables
-	//ofTrueTypeFont TTF;
-
-	// OSCsender (!!) variables
-	ofxOscSender sender[OSC_NUMSENDERS];
-    bool senderActive[OSC_NUMSENDERS];
-    int senderMode[OSC_NUMSENDERS];
-    string sendIP[OSC_NUMSENDERS];
-	int sendport[OSC_NUMSENDERS];
-    int resetID;
+	/// OSCsender (!!) variables
+	ofxOscSender sender[OSC_NUMSENDERS]; // the OSC senders...
+    bool senderActive[OSC_NUMSENDERS]; // flag for active/non-active senders
+    int senderMode[OSC_NUMSENDERS]; // OSC sender mode. Currently 2 modes available: 1 (normal mode) and 16 (c_setn mode for IEM Graz)
+    string sendIP[OSC_NUMSENDERS]; // OSC sender IP address
+	int sendport[OSC_NUMSENDERS]; // OSC sender UDP port
+    int lastOSCSender; // number of the last active OSC sender
 	bool OSCsenderOpen; // flag for OSC sender status
     ofxOscMessage m[OSC_FRAMELENGTH]; // static amount of messages in one dataframe
 	int OSCsendingInterval; // OSC time interval for sending data
@@ -121,8 +139,10 @@ public:
 	int numOSCloops; // TBD...
 	bool sendFullFrame; // toggle whole sensor values OSC sending
 	bool sendRawValues; // toggle raw values OSC sending (bandwidth management)
+    int oldSendTS;
+    int sendDelta;
 
-	// OSC sender addresses
+	/// OSC sender addresses.
 	string imuaddresses[12];
 	string buttonaddresses[3];
 	string airaddresses[2];
@@ -216,7 +236,7 @@ public:
 	bool calibrate[SABRE_MAXNUMMESSAGES];
 	double lowThresh;
 	double highThresh;
-	long debounceTimeout;
+	long debounceTimeout; // debouncing timeout value (in ms)
 
 	int displaySpeed;
 	int display;
@@ -248,5 +268,3 @@ public:
     ofBuffer dBuffer;
 	*/
 };
-
-#endif

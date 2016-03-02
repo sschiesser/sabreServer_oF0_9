@@ -1,39 +1,46 @@
-/*
-*  ofApp.cpp
-*
-*  Copyright © 2014 Zurich University of the Arts. All Rights Reserved.
-*
-*  Redistribution and use in source and binary forms, with or without
-*  modification, are permitted provided that the following conditions are met:
-*
-*  1. Redistributions of source code must retain the above copyright notice,
-*  this list of conditions and the following disclaimer.
-*
-*  2. Redistributions in binary form must reproduce the above copyright
-*  notice, this list of conditions and the following disclaimer in the
-*  documentation and/or other materials provided with the distribution.
-*
-*  3. The name of the author may not be used to endorse or promote products
-*  derived from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
-*  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-*  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-*  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-*  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
-*  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-*  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-*  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-*  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-*  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-*
-*  @author Jan Schacher
-*  @date 20140727
-*
-*  @author Sebastien Schiesser
-*  @date 20160225
-*/
+/****************************************************************************
+ * Copyright (c) 2016 Zurich University of the Arts. All Rights Reserved.
+ *
+ * This file is part of sabreServer
+ *
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * 3. The name of the author may not be used to endorse or promote products
+ * derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * \file ofApp.cpp
+ 
+ * \author Jan Schacher
+ * \author Sebastien Schiesser
+ 
+ * \date 2 March 2016
+ 
+ * \version 0.99
+ 
+ */
 
 #include "ofApp.h"
 
@@ -62,10 +69,10 @@ void ofApp::setup() {
 	/* GUI initialization */
 	ofSetEscapeQuitsApp(false); // disable ESC button to escape application
 	ofEnableAlphaBlending(); // turn on alpha blending
-	TTF.loadFont("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
-	TTFsmall.loadFont("lucidagrande.ttf", 8, 1, 0, 0);
-	//rawHIDobject->TTF.loadFont("lucidagrande.ttf", 8, 1, 1, 0);
+	TTF.load("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
+	TTFsmall.load("lucidagrande.ttf", 8, 1, 0, 0);
 	texScreen.allocate(440, 700, GL_RGB); // allocate a texture to the given dimensions
+    ofSetWindowTitle(titleString); // set window title
 	windowChanged = true; // flag to activate a window refresh
 	drawValues = true; // flag to activate a values redraw
 	rawHIDobject->drawValues = 0; // ?
@@ -312,7 +319,14 @@ bool ofApp::startHID()
 //--------------------------------------------------------------
 void ofApp::stopHID()
 {
-	/* Close the HID device if open */
+    /* First stop the HID/OSCsender thread to avoid error message */
+    while (rawHIDobject->isThreadRunning()) {
+        rawHIDobject->stop();
+        usleep(THREAD_STOPSLEEP_US);
+        stopOSC();
+    }
+
+	/* Then close the HID device if open */
 	if (rawHIDobject->rawHID.deviceOpen) {
 		bool ret = rawHIDobject->rawHID.closeDevice();
 		if (ret) {
@@ -323,13 +337,6 @@ void ofApp::stopHID()
 			if (appDebug) printf("[ofApp::stopHID] HID device closing error!!\n");
 		}
 	}
-
-	/* Stop then the HID/OSCsender thread */
-	if (rawHIDobject->isThreadRunning()) {
-		rawHIDobject->stop();
-		stopOSC();
-	}
-
 	/* Update GUI */
 	redrawFlag = 1;
 }
@@ -369,12 +376,14 @@ int ofApp::startOSC()
 
 	redrawFlag = 1;
 
+    if(appDebug) printf("[ofApp::startOSC] OSC sender started... %d active senders\n", retVal);
 	return retVal;
 }
 
 //--------------------------------------------------------------
 void ofApp::stopOSC()
 {
+    if(appDebug) printf("[ofApp::stopOSC] clearing OSC open flag\n");
 	rawHIDobject->OSCsenderOpen = false;
 }
 
@@ -386,7 +395,7 @@ void ofApp::receiveOSC()
 
 	while (receiver.hasWaitingMessages()) {
 		ofxOscMessage m;
-		receiver.getNextMessage(&m);
+		receiver.getNextMessage(m);
 		temp = m.getAddress();
 
 		if (!strcmp(temp.c_str(), "/sabre/framerate")) {
@@ -492,14 +501,18 @@ bool ofApp::readPrefs()
 		const size_t tempLen1 = (strlen(tempStr1.c_str()) + 1) * 2;
 		size_t convChars1 = 0;
 		wchar_t *tempWStr1 = new wchar_t[tempLen1];
-		mbstowcs_s(&convChars1, tempWStr1, tempLen1, tempStr1.c_str(), _TRUNCATE);
+        mbstowcs(tempWStr1, tempStr1.c_str(), tempLen1);
+        // VisualStudio issue... to check
+//		mbstowcs_s(&convChars1, tempWStr1, tempLen1, tempStr1.c_str(), _TRUNCATE);
 		rawHIDobject->rawHID.selectedDeviceInfo.manufacturer_string = tempWStr1;
 		
 		string tempStr2 = XML.getValue("sabre:rawHID:productname", "SABRe");
 		const size_t tempLen2 = (strlen(tempStr2.c_str()) + 1) * 2;
 		size_t convChars2 = 0;
 		wchar_t *tempWStr2 = new wchar_t[tempLen2];
-		mbstowcs_s(&convChars2, tempWStr2, tempLen2, tempStr2.c_str(), _TRUNCATE);
+        mbstowcs(tempWStr2, tempStr2.c_str(), tempLen2);
+        // VisualStudio issue... to check
+//        mbstowcs_s(&convChars2, tempWStr2, tempLen2, tempStr2.c_str(), _TRUNCATE);
 		rawHIDobject->rawHID.selectedDeviceInfo.product_string = tempWStr2;
 		//rawHIDobject->rawHID.selectedDeviceInfo.manufacturerName = XML.getValue("sabre:rawHID:manufacturername", "ICST");
 		//rawHIDobject->rawHID.selectedDeviceInfo.productName = XML.getValue("sabre:rawHID:productname", "SABRe");
@@ -533,8 +546,8 @@ bool ofApp::readPrefs()
 			XML.popTag();
 			XML.popTag();
 		}
-		rawHIDobject->calcResetID();
-		//if(appDebug) printf("calcResetID exited\n");
+		rawHIDobject->calcLastSender();
+//		if(appDebug) printf("calcLastSender exited\n");
 
 		receiveport = XML.getValue("sabre:network:receiver:port", 40001);
 
@@ -973,7 +986,7 @@ void ofApp::mouseDragged(int x, int y, int button){
 void ofApp::mousePressed(int x, int y, int button){
 	int i;
 	//	printf("mousepressed at %d %d\n", x, y);
-	ofRect(295, 36, 295 + 124, 36 + 20);
+	ofDrawRectangle(295, 36, 295 + 124, 36 + 20);
 
 	/* ----------------- *
 	 * Start/stop button *
@@ -1001,13 +1014,11 @@ void ofApp::mousePressed(int x, int y, int button){
 			/* Device open --> stopping */
 			if (rawHIDobject->rawHID.deviceOpen) {
 				stopHID();
-				stopOSC();
 			}
 			/* Device closed --> starting */
 			else {
 				stopHID();
 				int num = startOSC();
-				if (appDebug) printf("[ofApp::mousePressed] %d OSC sender(s) started\n", num);
 				if (num > 0) {
 					/* If HID thread start did not work, stop previously opened OSC senders,
 					 * and reset the flags in order to re-start an enumeration */
@@ -1031,14 +1042,16 @@ void ofApp::mousePressed(int x, int y, int button){
 	 * Show/hide values *
 	 * ---------------- */
 	if (x > 397 && x < 520 && y > 3 && y < 24) {
-		if (drawValues != 0) { // hide
+        /* Hide values */
+		if (drawValues != 0) {
 			if(appDebug) printf("[ofApp::mousePressed] Hiding values\n");
 			drawValues = false;
 			hiddenValues = true;
 			rawHIDobject->drawValues = 0;
 			rawHIDobject->calibrateSwitch = 0;
 		}
-		else { // show
+        /* Show values */
+		else {
 			if (appDebug) printf("[ofApp::mousePressed] Showing values\n");
 			drawValues = true;
 			hiddenValues = false;
@@ -1049,9 +1062,9 @@ void ofApp::mousePressed(int x, int y, int button){
 	}
 
 	/* -------------------------- *
-	 * main keys calibrate button *
+	 * Main keys calibrate button *
 	 * -------------------------- */
-	// ofRect(295, 690, 124, 20);
+	// ofDrawRectangle(295, 690, 124, 20);
 	if (x > 375 && x < 500 && y > 480 && y < 500) {
 		/* Switch off */
 		if (rawHIDobject->calibrateSwitch != 0) {
@@ -1205,10 +1218,10 @@ void ofApp::draw() {
 		// header frame background
 		ofFill();
 		ofSetColor(0, 0, 0, 1);
-		ofRect(0, 0, width, 49);
+        ofDrawRectangle(0, 0, width, 49);
 
 		ofSetColor(255, 127, 0, 10);
-		ofRect(0, 0, width, 3 * height);
+		ofDrawRectangle(0, 0, width, 3 * height);
 
 		if (rawHIDobject->rawHID.deviceOpen) {
 			ofSetColor(63, 63, 63, 255);
@@ -1221,19 +1234,19 @@ void ofApp::draw() {
 
 		// separator lines
 		//		ofSetColor(240, 240, 240, 127);
-		//		ofLine(0, anchory-14, width, anchory-14);	
+		//		ofDrawLine(0, anchory-14, width, anchory-14);	
 		//		ofSetColor(127, 127, 127, 127);
-		//		ofLine(0, anchory-13, width, anchory-13);		
+		//		ofDrawLine(0, anchory-13, width, anchory-13);		
 
 		ofSetColor(200, 200, 200, 255);
 
 		// Menu
 		//		ofFill();
 		//		ofSetColor(232, 232, 232);
-		//		ofRect(leftColumn, 3, 188, 18);
+		//		ofDrawRectangle(leftColumn, 3, 188, 18);
 		//		ofNoFill();
 		//		ofSetColor(127, 127, 127);
-		//		ofRect(leftColumn, 3, 188, 18);
+		//		ofDrawRectangle(leftColumn, 3, 188, 18);
 		//		ofFill();
 		//		ofTriangle(leftColumn+177,7,leftColumn+185, 7, leftColumn+181, 13);
 		//		ofSetColor(0, 0, 0);
@@ -1243,20 +1256,20 @@ void ofApp::draw() {
 		if (rawHIDobject->rawHID.deviceOpen) {
 			ofFill();
 			ofSetColor(255, 255, 255);
-			ofRect(rightColumn, 3, 124, 18);
+			ofDrawRectangle(rightColumn, 3, 124, 18);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(rightColumn, 3, 124, 18);
+			ofDrawRectangle(rightColumn, 3, 124, 18);
 			ofSetColor(0, 0, 0);
 			TTFsmall.drawString("Stop", rightColumn + 48, 16);
 		}
 		else {
 			ofFill();
 			ofSetColor(232, 232, 232);
-			ofRect(rightColumn, 3, 124, 18);
+			ofDrawRectangle(rightColumn, 3, 124, 18);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(rightColumn, 3, 124, 18);
+			ofDrawRectangle(rightColumn, 3, 124, 18);
 			ofSetColor(0, 0, 0);
 			TTFsmall.drawString("Start", rightColumn + 48, 16);
 		}
@@ -1265,40 +1278,40 @@ void ofApp::draw() {
 		if (!drawValues) {
 			ofFill();
 			ofSetColor(232, 232, 232);
-			ofRect(rightColumn + 126, 3, 124, 18);
+			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(rightColumn + 126, 3, 124, 18);
+			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
 			ofSetColor(0, 0, 0);
 			TTFsmall.drawString("Show Values", rightColumn + 28 + 126, 16);
 		}
 		else {
 			ofFill();
 			ofSetColor(255, 255, 255);
-			ofRect(rightColumn + 126, 3, 124, 18);
+			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(rightColumn + 126, 3, 124, 18);
+			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
 			ofSetColor(0, 0, 0);
 			TTF.drawString("Hide Values", rightColumn + 32 + 126, 16);
 		}
 		// Calibrate Button
 		ofFill();
 		ofSetColor(232, 232, 232);
-		ofRect(375, 480, 124, 20);
+		ofDrawRectangle(375, 480, 124, 20);
 		ofNoFill();
 		ofSetColor(127, 127, 127);
-		ofRect(375, 480, 124, 20);
+		ofDrawRectangle(375, 480, 124, 20);
 		ofSetColor(0, 0, 0);
 		TTFsmall.drawString("Calibrate Keys", 375 + 20, 480 + 14);
 
 		// Calibrate Button
 		ofFill();
 		ofSetColor(232, 232, 232);
-		ofRect(502, 480, 124, 20);
+		ofDrawRectangle(502, 480, 124, 20);
 		ofNoFill();
 		ofSetColor(127, 127, 127);
-		ofRect(502, 480, 124, 20);
+		ofDrawRectangle(502, 480, 124, 20);
 		ofSetColor(0, 0, 0);
 		TTFsmall.drawString("Calibrate Air", 500 + 24, 480 + 14);
 
@@ -1308,30 +1321,30 @@ void ofApp::draw() {
 		for (i = 0; i < 25; i++) { // stripes
 			if ((i % 2) == 0) {
 				ofSetColor(255, 127, 0, 10);
-				ofRect(anchorx - 2, anchory + ((i - 1) * stepsize) + 7, 94, 16);
+				ofDrawRectangle(anchorx - 2, anchory + ((i - 1) * stepsize) + 7, 94, 16);
 			}
 		}
 		for (i = 0; i < 9; i++) { // stripes
 			if ((i % 3) == 0) {
 				ofSetColor(255, 127, 0, 10);
-				ofRect(anchorx - 2 + 360, anchory + ((i - 1) * stepsize) + 7, 144, 16);
+				ofDrawRectangle(anchorx - 2 + 360, anchory + ((i - 1) * stepsize) + 7, 144, 16);
 			}
 		}
 		ofFill(); // heading
 		ofSetColor(255, 127, 0, 10);
-		ofRect(anchorx - 2 + 360, anchory + ((8) * stepsize) + 7, 144, 16);
+		ofDrawRectangle(anchorx - 2 + 360, anchory + ((8) * stepsize) + 7, 144, 16);
 
 		ofFill(); // button
 		ofSetColor(255, 127, 0, 10);
-		ofRect(anchorx - 2 + 360, anchory + ((11) * stepsize) + 7, 144, 16);
+		ofDrawRectangle(anchorx - 2 + 360, anchory + ((11) * stepsize) + 7, 144, 16);
 
 		ofFill(); // pressure
 		ofSetColor(255, 127, 0, 10);
-		ofRect(anchorx - 2 + 360, anchory + ((13) * stepsize) + 7, 144, 16);
+		ofDrawRectangle(anchorx - 2 + 360, anchory + ((13) * stepsize) + 7, 144, 16);
 
 		ofFill(); // keycode
 		ofSetColor(255, 127, 0, 10);
-		ofRect(anchorx - 2 + 360, anchory + ((15) * stepsize) + 7, 144, 16);
+		ofDrawRectangle(anchorx - 2 + 360, anchory + ((15) * stepsize) + 7, 144, 16);
 
 		ofSetColor(0, 0, 0, 191);
 
@@ -1395,14 +1408,14 @@ void ofApp::draw() {
 	if (drawValues && !hiddenValues) {
 		//			ofFill();
 		//			ofSetColor(200, 200, 200, 255);
-		//			ofRect(leftColumn-1, 79, width-leftColumn-5, height-anchory-15);
+		//			ofDrawRectangle(leftColumn-1, 79, width-leftColumn-5, height-anchory-15);
 		ofSetColor(0, 127, 255, 255);
 
 		for (i = 0; i < 25; i++) { // stripes
 			if ((i % 2) == 0) {
 				ofFill();
 				ofSetColor(255, 127, 0, 10);
-				ofRect(leftColumn - 1, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 85, 16);
+				ofDrawRectangle(leftColumn - 1, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 85, 16);
 				ofSetColor(0, 0, 0, 255);
 			}
 		}
@@ -1411,26 +1424,26 @@ void ofApp::draw() {
 			if ((i % 3) == 0) {
 				ofFill();
 				ofSetColor(255, 127, 0, 10);
-				ofRect(leftColumn - 1 + imuColumnLeft, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 103, 16);
+				ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 103, 16);
 				ofSetColor(0, 0, 0, 255);
 			}
 		}
 
 		ofFill(); // heading
 		ofSetColor(255, 127, 0, 10);
-		ofRect(leftColumn - 1 + imuColumnLeft, anchory + ((8) * stepsize) + 7, width - leftColumn - 103, 16);
+		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((8) * stepsize) + 7, width - leftColumn - 103, 16);
 
 		ofFill(); // button
 		ofSetColor(255, 127, 0, 10);
-		ofRect(leftColumn - 1 + imuColumnLeft, anchory + ((11) * stepsize) + 7, width - leftColumn - 103, 16);
+		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((11) * stepsize) + 7, width - leftColumn - 103, 16);
 
 		ofFill(); // pressure
 		ofSetColor(255, 127, 0, 10);
-		ofRect(leftColumn - 1 + imuColumnLeft, anchory + ((13) * stepsize) + 7, width - leftColumn - 103, 16);
+		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((13) * stepsize) + 7, width - leftColumn - 103, 16);
 
 		ofFill(); // keycode
 		ofSetColor(255, 127, 0, 10);
-		ofRect(leftColumn - 1 + imuColumnLeft, anchory + ((15) * stepsize) + 7, width - leftColumn - 103, 16);
+		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((15) * stepsize) + 7, width - leftColumn - 103, 16);
 
 		for (i = 0; i < 25; i++) { // keys
 			ofSetColor(0, 0, 0, 255);
@@ -1440,31 +1453,31 @@ void ofApp::draw() {
 			TTF.drawString(ofToString(rawHIDobject->keys[i].scaled, 6), midColumn, yy);
 			ofNoFill();
 			ofSetColor(91, 91, 91, 255);
-			ofRect(rightColumn, yy - 9, 104, 12);
+			ofDrawRectangle(rightColumn, yy - 9, 104, 12);
 			ofFill();
 			ofSetColor(0, 0, 0, 127);
 			if (rawHIDobject->calibrate[i]) {
 				ofSetColor(255, 127, 0, 191);
-				ofRect(rightColumn + (104 * rawHIDobject->keys[i].minimum * rawHIDobject->scale10), yy - 7, (104 * (rawHIDobject->keys[i].maximum - rawHIDobject->keys[i].minimum) * rawHIDobject->scale10), 9);
+				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].minimum * rawHIDobject->scale10), yy - 7, (104 * (rawHIDobject->keys[i].maximum - rawHIDobject->keys[i].minimum) * rawHIDobject->scale10), 9);
 				ofSetColor(0, 0, 0, 255);
-				ofRect(rightColumn + (104 * (rawHIDobject->keys[i].raw * rawHIDobject->scale10)), yy - 9, 2, 12);
+				ofDrawRectangle(rightColumn + (104 * (rawHIDobject->keys[i].raw * rawHIDobject->scale10)), yy - 9, 2, 12);
 
 			}
 			else {
-				ofRect(rightColumn + (104 * rawHIDobject->keys[i].scaled), yy - 9, 2, 12);
+				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].scaled), yy - 9, 2, 12);
 				ofSetColor(91, 91, 91, 255);
-				ofLine(rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy + 4);
-				ofLine(rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy + 4);
+				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy + 4);
+				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy + 4);
 			}
 			// draw binary boxes
 			ofNoFill();
 			ofSetColor(91, 91, 91, 255);
-			ofRect(farRightColumn, yy - 9, 12, 12);
+			ofDrawRectangle(farRightColumn, yy - 9, 12, 12);
 
 			if (rawHIDobject->keys[i].binary) {
 				ofFill();
 				ofSetColor(0, 0, 0, 255);
-				ofRect(farRightColumn + 2, yy - 6, 7, 7);
+				ofDrawRectangle(farRightColumn + 2, yy - 6, 7, 7);
 			}
 			// individual toggles
 			if (rawHIDobject->calibrateSwitch) {
@@ -1473,11 +1486,11 @@ void ofApp::draw() {
 					if (rawHIDobject->calibrate[i]) {
 						ofFill();
 						ofSetColor(255, 127, 0, 191);
-						ofRect(rightColumn + 126, yy - 9, 16, 12);
+						ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
 					}
 					ofNoFill();
 					ofSetColor(0, 0, 0);
-					ofRect(rightColumn + 126, yy - 9, 16, 12);
+					ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
 					TTF.drawString("c", rightColumn + 130, yy + 1);
 				}
 			}
@@ -1491,13 +1504,13 @@ void ofApp::draw() {
 			TTF.drawString(ofToString(rawHIDobject->IMU[i], 6), midColumn + 10 + imuColumnLeft, yy);
 			ofNoFill();
 			ofSetColor(91, 91, 91, 255);
-			ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 			ofFill();
 			ofSetColor(0, 0, 0, 255);
-			ofRect(rightColumn + imuColumnLeft + (104 * rawHIDobject->IMU[i]), yy - 9, 2, 12);
+			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->IMU[i]), yy - 9, 2, 12);
 			ofNoFill();
 			ofSetColor(91, 91, 91, 255);
-			ofLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
+			ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
 		}
 
 		// heading
@@ -1506,13 +1519,13 @@ void ofApp::draw() {
 		TTF.drawString(ofToString(rawHIDobject->heading, 2), midColumn + 10 + imuColumnLeft, yy);
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 		ofFill();
 		ofSetColor(0, 0, 0, 255);
-		ofRect(rightColumn + imuColumnLeft + 52 + (rawHIDobject->heading / 3.46153846153846), yy - 9, 2, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft + 52 + (rawHIDobject->heading / 3.46153846153846), yy - 9, 2, 12);
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		ofLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
+		ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
 
 		// tilt
 		ofSetColor(0, 0, 0, 255);
@@ -1520,14 +1533,14 @@ void ofApp::draw() {
 		TTF.drawString(ofToString(rawHIDobject->tilt, 2), midColumn + 10 + imuColumnLeft, yy);
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 		ofFill();
 		ofSetColor(0, 0, 0, 255);
-		//        ofRect( rightColumn + imuColumnLeft + 52 + (52 * rawHIDobject->tilt), yy-9, 2, 12);
-		ofRect(rightColumn + imuColumnLeft + (104 * rawHIDobject->tilt), yy - 9, 2, 12);
+		//        ofDrawRectangle( rightColumn + imuColumnLeft + 52 + (52 * rawHIDobject->tilt), yy-9, 2, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->tilt), yy - 9, 2, 12);
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		//        ofLine(rightColumn+52 + imuColumnLeft, yy-9, rightColumn+52 + imuColumnLeft, yy+4);
+		//        ofDrawLine(rightColumn+52 + imuColumnLeft, yy-9, rightColumn+52 + imuColumnLeft, yy+4);
 
 		// air
 		ofSetColor(0, 0, 0, 255);
@@ -1542,32 +1555,32 @@ void ofApp::draw() {
 		}
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 		ofFill();
 		ofSetColor(0, 0, 0, 127);
-		ofRect(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airLong[0] - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airLong[0] - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
 
 		if (rawHIDobject->airValue.calibratePressureRange) {
 			ofSetColor(255, 224, 0, 191);
-			ofRect(rightColumn + imuColumnLeft, yy - 7, (103), 9);
+			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 7, (103), 9);
 			// TODO figure scaling for the rangebars
 			ofSetColor(0, 0, 0, 255);
-			ofRect(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airValue.range - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
+			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airValue.range - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
 		}
 		else {
 			if (rawHIDobject->airValue.calibrationFlag) {
 				ofFill();
 				ofSetColor(255, 0, 0, 255);
-				ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 			}
 			else {
 				ofNoFill();
 				ofSetColor(91, 91, 91, 255);
-				ofRect(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
 			}
 			ofFill();
 			ofSetColor(0, 0, 0, 127);
-			ofRect(rightColumn + imuColumnLeft + CLAMP((104 * rawHIDobject->airValue.range), 0, 104), yy - 9, 2, 12);
+			ofDrawRectangle(rightColumn + imuColumnLeft + CLAMP((104 * rawHIDobject->airValue.range), 0, 104), yy - 9, 2, 12);
 		}
 
 		// buttons
@@ -1580,20 +1593,20 @@ void ofApp::draw() {
 
 		ofNoFill();
 		ofSetColor(91, 91, 91, 255);
-		ofRect(rightColumn + imuColumnLeft, yy - 9, 12, 12);
-		ofRect(rightColumn + imuColumnLeft + 14, yy - 9, 12, 12);
-		ofRect(rightColumn + imuColumnLeft + 28, yy - 9, 12, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 12, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft + 14, yy - 9, 12, 12);
+		ofDrawRectangle(rightColumn + imuColumnLeft + 28, yy - 9, 12, 12);
 
 		ofFill();
 		ofSetColor(0, 0, 0, 255);
 		if (rawHIDobject->button[0]) {
-			ofRect(rightColumn + imuColumnLeft + 2, yy - 6, 7, 7);
+			ofDrawRectangle(rightColumn + imuColumnLeft + 2, yy - 6, 7, 7);
 		}
 		if (rawHIDobject->button[1]) {
-			ofRect(rightColumn + imuColumnLeft + 16, yy - 6, 7, 7);
+			ofDrawRectangle(rightColumn + imuColumnLeft + 16, yy - 6, 7, 7);
 		}
 		if (rawHIDobject->button[2]) {
-			ofRect(rightColumn + imuColumnLeft + 30, yy - 6, 7, 7);
+			ofDrawRectangle(rightColumn + imuColumnLeft + 30, yy - 6, 7, 7);
 		}
 
 		// battery
@@ -1606,34 +1619,34 @@ void ofApp::draw() {
 		if (rawHIDobject->calibrateSwitch) {
 			ofFill();
 			ofSetColor(255, 127, 0);
-			ofRect(375, 480, 124, 20);
+			ofDrawRectangle(375, 480, 124, 20);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(375, 480, 124, 20);
+			ofDrawRectangle(375, 480, 124, 20);
 			ofSetColor(0, 0, 0);
 			TTF.drawString("Calibrating Keys", 375 + 12, 480 + 14);
 
 			if (rawHIDobject->calibrateSingle == 0) {
 				ofFill();
 				ofSetColor(255, 127, 0);
-				ofRect(375, 458, 124, 20);
+				ofDrawRectangle(375, 458, 124, 20);
 				ofNoFill();
 				ofSetColor(127, 127, 127);
-				ofRect(375, 458, 124, 20);
+				ofDrawRectangle(375, 458, 124, 20);
 				ofSetColor(0, 0, 0);
 				TTF.drawString("Calibrate All...", 375 + 24, 458 + 14);
 			}
 			else {
 				ofNoFill();
 				ofSetColor(127, 127, 127);
-				ofRect(375, 458, 124, 20);
+				ofDrawRectangle(375, 458, 124, 20);
 				ofSetColor(0, 0, 0);
 				TTF.drawString("Calibrate All Keys", 375 + 10, 458 + 14);
 			}
 
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(375, 436, 124, 20);
+			ofDrawRectangle(375, 436, 124, 20);
 			ofSetColor(0, 0, 0);
 			TTF.drawString("Reset Key Calibr.", 375 + 12, 436 + 14);
 		}
@@ -1641,10 +1654,10 @@ void ofApp::draw() {
 		if (rawHIDobject->airValue.calibratePressureRange) {
 			ofFill();
 			ofSetColor(255, 224, 0);
-			ofRect(502, 480, 124, 20);
+			ofDrawRectangle(502, 480, 124, 20);
 			ofNoFill();
 			ofSetColor(127, 127, 127);
-			ofRect(502, 480, 124, 20);
+			ofDrawRectangle(502, 480, 124, 20);
 			ofSetColor(0, 0, 0);
 			TTF.drawString("Calibrating Air", 502 + 12, 480 + 14);
 		}
@@ -1665,23 +1678,23 @@ void ofApp::draw() {
 		pos_x = 360;
 		if (rawHIDobject->batteryLevelRight*6.667 >= (i * 6.667)) {
 			ofSetColor(127, 127, 127);
-			ofRect(pos_x + i * 2, 25, 2, 10);
+			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
 		}
 	}
-	//    ofRect
+	//    ofDrawRectangle
 	for (i = 0; i < 15; i++) {
 		pos_x = 425;
 		if (rawHIDobject->batteryLevelAir*6.667 >= (i * 6.667)) {
 			ofSetColor(127, 127, 127);
-			ofRect(pos_x + i * 2, 25, 2, 10);
+			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
 		}
 	}
 	ofSetColor(63, 63, 63, 255);
 	ofNoFill();
-	ofRect(360, 25, 31, 10);
-	ofRect(425, 25, 31, 10);
-	ofRect(391, 27, 2, 6);
-	ofRect(456, 27, 2, 6);
+	ofDrawRectangle(360, 25, 31, 10);
+	ofDrawRectangle(425, 25, 31, 10);
+	ofDrawRectangle(391, 27, 2, 6);
+	ofDrawRectangle(456, 27, 2, 6);
 
 	ofFill();
 
@@ -1698,7 +1711,7 @@ void ofApp::draw() {
 			ofSetColor(212, 212, 212, 255);
 
 		}
-		ofRect(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
 	}
 	for (i = 0; i < 8; i++) {
 		pos_x = 430;
@@ -1709,7 +1722,7 @@ void ofApp::draw() {
 			ofSetColor(212, 212, 212, 255);
 
 		}
-		ofRect(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
 	}
 	for (i = 0; i < 8; i++) {
 		pos_x = 485;
@@ -1720,7 +1733,7 @@ void ofApp::draw() {
 			ofSetColor(212, 212, 212, 255);
 
 		}
-		ofRect(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
 	}
 
 
