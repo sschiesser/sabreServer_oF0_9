@@ -3,6 +3,7 @@
 *.opendb
 *.tlog
 *.zip
+*.xcuserstate
 
 # Compiled Object files
 *.slo
@@ -32,3 +33,7 @@
 *.exe
 *.out
 *.app
+*.exp
+*.iobj
+*.res
+*.ipdb
