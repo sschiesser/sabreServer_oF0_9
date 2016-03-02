@@ -33,3 +33,7 @@
 *.exe
 *.out
 *.app
+*.exp
+*.iobj
+*.res
+*.ipdb

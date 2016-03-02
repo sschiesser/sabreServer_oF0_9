@@ -247,13 +247,13 @@ void threadedHID::threadedFunction()
                 OSCprevTime = OSCtime;
             }
 		}
-		#ifdef _WIN64
+#ifdef _WIN64
         Sleep(1);
-        #elif _WIN32
+#elif _WIN32
 		Sleep(1);
-		#elif __APPLE__ 
+#elif __APPLE__
 		usleep(1000);
-		#endif
+#endif
 //		unlock();
    	}
 }

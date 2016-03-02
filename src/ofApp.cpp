@@ -322,7 +322,13 @@ void ofApp::stopHID()
     /* First stop the HID/OSCsender thread to avoid error message */
     while (rawHIDobject->isThreadRunning()) {
         rawHIDobject->stop();
+#ifdef _WIN64
+		Sleep((DWORD)(THREAD_STOPSLEEP_US / 1000));
+#elif _WIN32
+		Sleep((DWORD)(THREAD_STOPSLEEP_US / 1000));
+#elif __APPLE__
         usleep(THREAD_STOPSLEEP_US);
+#endif
         stopOSC();
     }
 
