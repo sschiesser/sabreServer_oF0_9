@@ -1,43 +1,61 @@
-/*
- *  threadedHID.cpp
+/****************************************************************************
+ * Copyright (c) 2016 Zurich University of the Arts. All Rights Reserved.
  *
- *  Copyright Â© 2014 Zurich University of the Arts. All Rights Reserved.
- *
- *  Redistribution and use in source and binary forms, with or without
- *  modification, are permitted provided that the following conditions are met:
- *
- *  1. Redistributions of source code must retain the above copyright notice,
- *  this list of conditions and the following disclaimer.
- *
- *  2. Redistributions in binary form must reproduce the above copyright
- *  notice, this list of conditions and the following disclaimer in the
- *  documentation and/or other materials provided with the distribution.
- *
- *  3. The name of the author may not be used to endorse or promote products
- *  derived from this software without specific prior written permission.
- *
- *  THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
- *  WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- *  MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
- *  EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * This file is part of sabreServer
  *
  *
- *  @author Jan Schacher
- *  @@date 20140727
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
  *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright
+ * notice, this list of conditions and the following disclaimer in the
+ * documentation and/or other materials provided with the distribution.
+ *
+ * 3. The name of the author may not be used to endorse or promote products
+ * derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY [LICENSOR] "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+ * EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * \file threadedHID.cpp
+ 
+ * \author Jan Schacher
+ * \author Sebastien Schiesser
+ 
+ * \date 2 March 2016
+ 
+ * \version 0.99
+ 
  */
 
+
+/* --------------------------------------------------------------
+ *     INCLUDES
+ * -------------------------------------------------------------- */
 #include "ofApp.h"
 #include "threadedHID.h"
 #include "sabreKeys.h"
 
- //--------------------------------------------------------------
+
+/* --------------------------------------------------------------
+ *     FUNCTIONS
+ * -------------------------------------------------------------- */
+
+//--------------------------------------------------------------
 threadedHID::threadedHID()
 {
 //	TTF.loadFont("inconsolata.ttf", 11, 1, 1, 0);
@@ -229,9 +247,11 @@ void threadedHID::threadedFunction()
                 OSCprevTime = OSCtime;
             }
 		}
-		#ifdef WIN32
+		#ifdef _WIN64
+        Sleep(1);
+        #elif _WIN32
 		Sleep(1);
-		#else
+		#elif __APPLE__ 
 		usleep(1000);
 		#endif
 //		unlock();
@@ -366,7 +386,7 @@ void threadedHID::parseLeft()
 
 		/* ----------------------------------------------------- */
 
-		/* Get current time for debouncing */
+		/* Get current time for debouncing (in ms) */
         int now = ofGetElapsedTimeMillis();
 
 		/* Cook 13 left-hand keys */
@@ -431,7 +451,6 @@ void threadedHID::parseLeft()
 		}
         
         /* Calculate time difference since last left-hand parsing */
-//        systimeL = ofGetElapsedTimeMillis();
         systimeL = ofGetElapsedTimeMicros();
         deltaTimeL = systimeL - oldSystimeL;
         oldSystimeL = systimeL;
@@ -476,7 +495,7 @@ void threadedHID::parseRight()
 
 		/* ----------------------------------------------------- */
 
-		/* Get current time for debouncing */
+		/* Get current time for debouncing (in ms) */
 		int now = ofGetElapsedTimeMillis();
 
 		/* Cook 12 right-hand keys */
@@ -560,16 +579,15 @@ void threadedHID::parseIMU()
 		raw[8] = input[1][25] + (input[1][28] << 8);
 		
 		/* Cook IMU sensors - v3.5 comm structure (16 bit) */
-		// accelerometer
+		/* Accelerometer */
 		for(int i = 0; i < 3; i++) {
 			// correct sign
 			if (raw[i] >= 32768) {
 				raw[i] -= 65535;
 			}
 			rawIMU[i] = raw[i] + accelOffset; // accelOffset = 0.5 * 2^16 = 32768
-//			IMU[i] = rawIMU[i] * accelScale; // accelScale = 16 bit (since v3.5)
-//			IMU[i] = CLAMP(IMU[i], 0.0 , 1.0);
 		}
+        /* Put out of the loop to set the IMU[] positions to the correct xyz axes */
         IMU[0] = rawIMU[SABRE_IMU_ACCELXPOS] * accelScale;
         IMU[0] = CLAMP(IMU[0], 0.0, 1.0);
         IMU[1] = rawIMU[SABRE_IMU_ACCELYPOS] * accelScale;
@@ -577,7 +595,7 @@ void threadedHID::parseIMU()
         IMU[2] = rawIMU[SABRE_IMU_ACCELZPOS] * accelScale;
         IMU[2] = CLAMP(IMU[2], 0.0, 1.0);
         
-		// gyroscope
+		/* Gyroscope */
 		for(int i = 3; i < 6; i++) {
 			// correct sign
 			if (raw[i] >= 32768) {
@@ -587,7 +605,8 @@ void threadedHID::parseIMU()
 			IMU[i] = rawIMU[i] * gyroScale; // gyroScale = 16 bit
 			IMU[i] = CLAMP(IMU[i], 0.0 , 1.0);
 		}
-		// magnetometer
+        
+		/* Magnetometer */
 		for(int i = 6; i < 9; i++) {
 			// correct sign
 			if (raw[i] >= 32768) {
@@ -597,14 +616,14 @@ void threadedHID::parseIMU()
 			IMU[i] = rawIMU[i] * magnetoScale; // magnetoScale = 12 bit
 			IMU[i] = CLAMP(IMU[i], 0.0 , 1.0);
 		}
-		// temperature
+        
+		/* Temperature */
 		int i = 9;
-		// correct sign
 		if( raw[i] >= 32768 ) {
 			raw[i] -= 65535;
 		}
-		rawIMU[i] = raw[i] + tempOffset; // tempOffset = 13200 --> 35 Â°C
-		IMU[i] = (rawIMU[i] / 280.) + 35.0; // sensitivity = 280 LSB/ Â°C
+		rawIMU[i] = raw[i] + tempOffset; // tempOffset = 13200 --> 35 ¡C
+		IMU[i] = (rawIMU[i] / 280.) + 35.0; // sensitivity = 280 LSB/ ¡C
 		
 		/* Calculate the sums */
 		summedIMU[0] = ( fabs(IMU[0] - 0.5) + fabs(IMU[1] - 0.5) + fabs(IMU[2] - 0.5) ) * 0.6666666666666666666666666; // accelerometer 
@@ -623,7 +642,7 @@ void threadedHID::parseAir()
 		/* Parse out airMEMS data */
 		airLong[0] = input[2][0] + (input[2][1] << 8) + (input[2][2] << 16) + (input[2][3] << 24) ; // pressure
 		airLong[1] = input[2][4] + (input[2][5] << 8) + (input[2][6] << 16) + (input[2][7] << 24) ; // temperature
-		/* Convert the long integers into a double Â°C realistic value */
+		/* Convert the long integers into a double ¡C realistic value */
 		air[0] = ((double)(airLong[0] / 100.0)); // pressure
 		air[1] = ((double)(airLong[1] / 100.0)); // temprature
         /* Parse out system data */
@@ -689,7 +708,9 @@ void threadedHID::parseAir()
 //--------------------------------------------------------------
 void threadedHID::calcKeycode()
 {
-	/* Keycode calculation */
+	/* Keycode calculation: each key number corresponds to a
+     * bit position. Each single fingering is also a unique
+     * 25-bit word. */
 	keycode = 0;
 	for(int i = 0; i < SABRE_NUMKEYS; i++) {
 		if(keys[i].binary == 1) {
@@ -719,27 +740,6 @@ void threadedHID::calcKeycode()
 //--------------------------------------------------------------
 void threadedHID::calcHeadingTilt()
 {
-//    double x, y, z;
-//    double xx, yy, zz;
-//    double xAcc, yAcc, zAcc;
-//    double pitch, roll;
-    
-//    x = IMU[0] - 0.5;
-//    y = IMU[1] - 0.5;
-//    z = IMU[2] - 0.5;
-//    
-//    xx = x * x;
-//    yy = y * y;
-//    zz = z * z;
-    
-//    xAcc = x * 8.0 * (SABRE_IMU_ACCELXSIGN ? -1 : 1);
-//    yAcc = y * 8.0 * (SABRE_IMU_ACCELYSIGN ? -1 : 1);
-//    zAcc = z * 8.0 * (SABRE_IMU_ACCELZSIGN ? -1 : 1);
-    
-//    pitch = ((atan(xAcc/sqrt(pow(yAcc, 2) + pow(zAcc, 2))) * RAD_TO_DEG));
-//    roll = (atan(yAcc/sqrt(pow(xAcc, 2) + pow(zAcc, 2))) * RAD_TO_DEG);
-//    printf("[threadedHID::calcHeadingTilt] IMU values:\n- x %f\n- y %f\n- z %f\n- pitch %f\n- roll %f\n", xAcc, yAcc, zAcc, pitch, roll);
-	
     double x, y, z;
     double ax, ay, bx, by;
 
@@ -749,38 +749,40 @@ void threadedHID::calcHeadingTilt()
 	x = (IMU[0] - 0.5) * DEG_TO_RAD;
 	y = (IMU[1] - 0.5) * DEG_TO_RAD;
 	
-//	 old = old + (new - old) * factor;
-	x = headingOld_x + ((x - headingOld_x) * 0.2);
-	y = headingOld_y + ((y - headingOld_y) * 0.2);
-	
+    /* Ponderate the new acceleration values by a given factor,
+     * in order to reduce jittering: 'old = old + (new - old) * factor' */
+	x = headingOld_x + ((x - headingOld_x) * SABRE_IMU_REFRESHFACTOR);
+	y = headingOld_y + ((y - headingOld_y) * SABRE_IMU_REFRESHFACTOR);
 	headingOld_x = x;
 	headingOld_y = y;
 
+    /* Steps for heading & tilt calculation... */
 	ax = sin(x);
 	ay = sin(y);
-	
 	bx = tan(x);
 	bx = bx * bx;
-	
 	by = tan(y);
 	by = by * by;
 	
-//    heading = atan2(ax, ay) * RAD_TO_DEG;
+    /* Add offset to the heading value, in order to have the 0/±180¡ line
+     * in the player-neck-bell direction. Additionally correct the ±180 overshoots */
     heading = ((SABRE_IMU_ANGLEOFFSET * DEG_TO_RAD) + atan2(ax, ay)) * RAD_TO_DEG;
     if(heading > 180.0) heading = -180.0 + (heading - 180.0);
     else if(heading < -180.0) heading = 180 + (heading + 180.0);
+    /* ...still have to find, where the 8 factor comes from... */
 	tilt = CLAMP( (atan( sqrt(bx + by) ) * RAD_TO_DEG * 8.0), 0.0, 1.0);
-//    if((tilt >= 0.0) && (tilt <= 0.02)) heading = 0.0;
+    
     if(appDebug) printf("[threadedHID::calcHeadingTilt] Heading: %f, tilt: %f\n", heading, tilt);
-//	//	tilt = atan( sqrt(bx + by) ) * RAD_TO_DEG * 10.0;
 }
 
 //--------------------------------------------------------------
 void threadedHID::sendOSC(int ID, bool resetFlags)
 {
     int i, j;
+    
     if(appDebug) {
-        double now = ofGetElapsedTimeMicros();
+        /* Get current time (in us) to measure difference between two OSC senders */
+        int now = ofGetElapsedTimeMicros();
         if(ID == 0) {
             sendDelta = 0;
         }
@@ -788,8 +790,9 @@ void threadedHID::sendOSC(int ID, bool resetFlags)
             sendDelta += (now - oldSendTS);
         }
         oldSendTS = now;
-        printf("[threadedHID::sendOSC] entering function... delta to 1st sender (ms): %0.3f\n", (0.001 * sendDelta));
+        printf("[threadedHID::sendOSC] entering function... delta to 1st sender (ms): %0.3f\n", (0.001 * (double)sendDelta));
     }
+    
     /* Standard data-mode */
     if( (senderMode[ID] & 1) == 1) {
 		
@@ -1080,6 +1083,8 @@ void threadedHID::sendOSC(int ID, bool resetFlags)
 //--------------------------------------------------------------
 void threadedHID::calcLastSender()
 {
+    /* Short calculation to set which is the last active OSC sender.
+     * Used to send the same values on different OSC ports. */
     lastOSCSender = -1;
     for(int i = 0; i < OSC_NUMSENDERS; i++) {
         if(senderActive[i] == 1){

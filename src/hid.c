@@ -1,26 +1,34 @@
-/*******************************************************
- HIDAPI - Multi-Platform library for
- communication with HID devices.
+/****************************************************************************
+ * HIDAPI - Multi-Platform library for
+ * communication with HID devices.
+ *
+ * Alan Ott
+ * Signal 11 Software
+ *
+ * 2010-07-03
+ *
+ * Copyright 2010, All Rights Reserved.
+ *
+ * At the discretion of the user of this library,
+ * this software may be licensed under the terms of the
+ * GNU General Public License v3, a BSD-Style license, or the
+ * original HIDAPI license as outlined in the LICENSE.txt,
+ * LICENSE-gpl3.txt, LICENSE-bsd.txt, and LICENSE-orig.txt
+ * files located at the root of the source distribution.
+ * These files may also be found in the public source
+ * code repository located at: http://github.com/signal11/hidapi .
+ ****************************************************************************/
 
- Alan Ott
- Signal 11 Software
-
- 2010-07-03
-
- Copyright 2010, All Rights Reserved.
-
- At the discretion of the user of this library,
- this software may be licensed under the terms of the
- GNU General Public License v3, a BSD-Style license, or the
- original HIDAPI license as outlined in the LICENSE.txt,
- LICENSE-gpl3.txt, LICENSE-bsd.txt, and LICENSE-orig.txt
- files located at the root of the source distribution.
- These files may also be found in the public source
- code repository located at:
-        http://github.com/signal11/hidapi .
-********************************************************/
-
-/* See Apple Technical Note TN2187 for details on IOHidManager. */
+/**
+ * \file hid.c
+ 
+ * \author Alan Ott, Signal 11 Software
+ 
+ * \date 3 July 2010
+ 
+ * \sa Apple Technical Note TN2187 for details on IOHidManager
+ 
+ */
 
 #include <IOKit/hid/IOHIDManager.h>
 #include <IOKit/hid/IOHIDKeys.h>
