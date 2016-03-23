@@ -48,6 +48,7 @@
 #include "ofxOsc.h"
 #include "ofxOscParameterSync.h"
 #include "ofxGui.h"
+#include "ofxDatGui.h"
 #include "threadedHID.h"
 #include "sabreKeys.h"
 
@@ -115,8 +116,27 @@ class ofApp : public ofBaseApp
 
 		void receiveOSC();
 
-		// ofxGui
-		void keyPressed  (int key);
+        /**********************
+         * GUI tools!!! *
+         **********************/
+        ofxDatGui* HIDinfoCt; // container for the HID info
+        ofxDatGuiLabel* HIDinfo; // HID info
+        ofxDatGuiToggle* btStart; // start/stop button
+        ofxDatGui* module1Ct; // container for all monitor windows
+        ofxDatGuiFolder* module1Folder;
+        ofxDatGuiSlider* m1LinkLevel;
+        ofxDatGuiSlider* m1BatteryLevel;
+        ofxDatGuiFolder* m1OSCinfoFolder; // container for OSC IP & ports information
+        ofxDatGuiTextInput* m1OSCinfoIP[4];
+        ofxDatGuiTextInput* m1OSCinfoPort[4];
+        ofxDatGuiToggle* m1OSCinfoEn[4];
+    
+        ofRectangle appWindow;
+        ofRectangle marginTL;
+
+
+        // GUI callbacks
+        void keyPressed  (int key);
 		void keyReleased(int key);
 		void mouseMoved(int x, int y );
 		void mouseDragged(int x, int y, int button);
@@ -124,6 +144,7 @@ class ofApp : public ofBaseApp
 		void mouseReleased(int x, int y, int button);
 		void mouseEntered(int x, int y);
 		void mouseExited(int x, int y);
+        void onButtonEvent(ofxDatGuiButtonEvent e);
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
@@ -150,8 +171,7 @@ class ofApp : public ofBaseApp
 		string str1;
 
 		// ofTrueTypeFont
-		ofTrueTypeFont TTF;
-		ofTrueTypeFont TTFsmall;
+		ofTrueTypeFont font;
 
 		// ofTexture
 		ofTexture texScreen;

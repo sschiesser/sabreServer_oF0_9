@@ -49,8 +49,8 @@
 //========================================================================
 int main() {
 
-	ofAppGlutWindow window;
-	ofSetupOpenGL(1024, 768, OF_WINDOW);				// <-------- setup the GL context
+//	ofAppGlutWindow window;
+	ofSetupOpenGL(1920, 1080, OF_WINDOW); // <--- setup the GL context
 
 /* If compiling in release mode (VisualStudio), disable the console window */
 #ifdef _WIN32
