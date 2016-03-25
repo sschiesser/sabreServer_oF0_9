@@ -48,8 +48,14 @@
 #include "ofxOsc.h"
 #include "ofxOscParameterSync.h"
 #include "ofxGui.h"
+#include "ofxImGui.h"
 #include "threadedHID.h"
 #include "sabreKeys.h"
+
+#define APP_WINDOW_WIDTH 1280
+#define APP_WINDOW_HEIGHT 768
+#define APP_MAX_MODULES 4
+
 
 /* DEFAULT SABRE RECEIVER HID VALUES
  * =================================
@@ -131,18 +137,26 @@ class ofApp : public ofBaseApp
 		/* ---------------- *
 		 * MEMBER VARIABLES *
 		 * ---------------- */
+    
+    /* ofxImGui tools */
+    ofxImGui gui;
+    ImVec4 backgroundColorMain;
+    ImVec4 backgroundColorMod[APP_MAX_MODULES];
+    ImVec2 appWindowSize;
+    ImVec2 moduleWindowSize;
+    
 		threadedHID * rawHIDobject;
 
 		ofxOscReceiver receiver;
 		ofxOscParameterSync sync;
 		int receiveport;
 
-		ofParameter<float> size;
-		ofParameter<int> number;
-		ofParameter<bool> check;
-		ofParameterGroup parameters;
-		ofParameter<ofColor> color;
-		ofxPanel gui;
+//		ofParameter<float> size;
+//		ofParameter<int> number;
+//		ofParameter<bool> check;
+//		ofParameterGroup parameters;
+//		ofParameter<ofColor> color;
+//		ofxPanel gui;
 
 		// ofxXmlSettings
 		ofxXmlSettings XML;

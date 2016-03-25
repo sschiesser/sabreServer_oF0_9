@@ -44,13 +44,19 @@
 
 #include "ofMain.h"
 #include "ofApp.h"
+#include "ofGLProgrammableRenderer.h"
 #include "ofAppGlutWindow.h"
 
 //========================================================================
 int main() {
-
-	ofAppGlutWindow window;
-	ofSetupOpenGL(1024, 768, OF_WINDOW);				// <-------- setup the GL context
+    ofSetLogLevel(OF_LOG_VERBOSE);
+    ofGLWindowSettings glWindowSettings;
+    glWindowSettings.width = APP_WINDOW_WIDTH;
+    glWindowSettings.height = APP_WINDOW_HEIGHT;
+    glWindowSettings.setGLVersion(3, 2);
+    ofCreateWindow(glWindowSettings);
+//	ofAppGlutWindow window;
+//	ofSetupOpenGL(1024, 768, OF_WINDOW);				// <-------- setup the GL context
 
 /* If compiling in release mode (VisualStudio), disable the console window */
 #ifdef _WIN32

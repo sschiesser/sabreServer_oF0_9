@@ -54,6 +54,12 @@ void ofApp::setup() {
 		printf("**   sabreServer version %s    **\n", appVersion.c_str());
 		printf("************************************\n\n");
 	}
+    
+    appWindowSize.x = APP_WINDOW_WIDTH;
+    appWindowSize.y = APP_WINDOW_HEIGHT;
+    moduleWindowSize.x = APP_WINDOW_WIDTH / APP_MAX_MODULES;
+    moduleWindowSize.y = APP_WINDOW_HEIGHT;
+
 
 	/* Create a new threaded HID object, which contains:
 	 * - rawHID -> the wrapping object for all hidapi function
@@ -67,6 +73,10 @@ void ofApp::setup() {
 	rawHIDobject = new(threadedHID); // create a new threaded HID object
 
 	/* GUI initialization */
+    gui.setup();
+    ImGui::GetIO().MouseDrawCursor = false;
+    backgroundColorMain = ofColor(114, 144, 154);
+    
 	ofSetEscapeQuitsApp(false); // disable ESC button to escape application
 	ofEnableAlphaBlending(); // turn on alpha blending
 	TTF.load("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
@@ -1203,6 +1213,61 @@ void ofApp::draw() {
 	double yy;
 	int pos_x;
 
+    ofSetBackgroundColor(backgroundColorMain);
+    gui.begin();
+    // Main window
+    {
+        ImGui::SetNextWindowSize(appWindowSize);
+        ImGui::SetNextWindowPos(ImVec2(0,0));
+        ImGuiWindowFlags winFlagsMain = 0;
+        winFlagsMain |= ImGuiWindowFlags_NoMove;
+        winFlagsMain |= ImGuiWindowFlags_NoResize;
+        winFlagsMain |= ImGuiWindowFlags_NoTitleBar;
+        bool showWindowMain = true;
+        ImGui::Begin("Main Window", &showWindowMain, winFlagsMain);
+        ImGui::Text(GUIdeviceInfo.c_str());
+        ImGui::SameLine();
+        static bool clicked = false;
+        if(clicked) {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.8f, 0.8f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(1/7.0f, 0.9f, 0.9f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor::HSV(1/7.0f, 1.0f, 1.0f));
+            if(ImGui::Button("Stop")) clicked = false;
+        }
+        else {
+            ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.6f, 0.6f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(1/7.0f, 0.7f, 0.7f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImColor::HSV(1/7.0f, 0.8f, 0.8f));
+            if(ImGui::Button("Start")) clicked = true;
+        }
+        ImGui::PopStyleColor(3);
+        ImGui::End();
+    }
+    
+    // 1. module window
+    {
+        ImGui::SetNextWindowSize(moduleWindowSize);
+        ImGui::SetNextWindowPos(ImVec2(0, 40));
+        ImGuiWindowFlags winFlagsMod = 0;
+        winFlagsMod |= ImGuiWindowFlags_NoMove;
+        winFlagsMod |= ImGuiWindowFlags_NoResize;
+        bool showWindowMod = true;
+        ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
+        ImGui::PushItemWidth(60);
+        ImGui::Text("Link: ");
+        ImGui::SameLine();
+        static int link = 124;
+        ImGui::SliderInt("", &link, 0, 255);
+        ImGui::SameLine();
+        ImGui::Text("Battery: ");
+        ImGui::SameLine();
+        static int battery = 3;
+        ImGui::SliderInt("", &battery, 0, 255);
+        ImGui::PopItemWidth();
+        ImGui::End();
+    }
+    gui.end();
+    
 	if (windowChanged) {
 		if (drawValues == 0) {
 			width = 550;
