@@ -54,7 +54,7 @@
 
 #define APP_WINDOW_WIDTH 1280
 #define APP_WINDOW_HEIGHT 768
-#define APP_MAX_MODULES 4
+#define APP_MAX_MODULES 3
 
 
 /* DEFAULT SABRE RECEIVER HID VALUES
@@ -144,6 +144,7 @@ class ofApp : public ofBaseApp
     ImVec4 backgroundColorMod[APP_MAX_MODULES];
     ImVec2 appWindowSize;
     ImVec2 moduleWindowSize;
+    ImVec2 moduleWindowPos;
     
 		threadedHID * rawHIDobject;
 

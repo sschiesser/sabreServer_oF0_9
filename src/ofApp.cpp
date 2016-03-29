@@ -44,6 +44,7 @@
 
 #include "ofApp.h"
 
+#define IM_ARRAYSIZE(_ARR)  ((int)(sizeof(_ARR)/sizeof(*_ARR)))
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -57,8 +58,10 @@ void ofApp::setup() {
     
     appWindowSize.x = APP_WINDOW_WIDTH;
     appWindowSize.y = APP_WINDOW_HEIGHT;
-    moduleWindowSize.x = APP_WINDOW_WIDTH / APP_MAX_MODULES;
-    moduleWindowSize.y = APP_WINDOW_HEIGHT;
+    moduleWindowPos.x = 0;
+    moduleWindowPos.y = 40;
+    moduleWindowSize.x = 350;
+    moduleWindowSize.y = APP_WINDOW_HEIGHT - moduleWindowPos.y;
 
 
 	/* Create a new threaded HID object, which contains:
@@ -1201,19 +1204,19 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-	int i;
-	int anchorx = 15;
-	int anchory = 66;
-	int stepsize = 18;
-	int columnwidth = 200;
-	int rightColumn = 270;
-	int leftColumn = 10;
-	int width = 0;
-	int height = 0;
-	double yy;
-	int pos_x;
+//	int i;
+//	int anchorx = 15;
+//	int anchory = 66;
+//	int stepsize = 18;
+//	int columnwidth = 200;
+//	int rightColumn = 270;
+//	int leftColumn = 10;
+//	int width = 0;
+//	int height = 0;
+//	double yy;
+//	int pos_x;
 
-    ofSetBackgroundColor(backgroundColorMain);
+//    ofSetBackgroundColor(backgroundColorMain);
     gui.begin();
     // Main window
     {
@@ -1226,7 +1229,7 @@ void ofApp::draw() {
         bool showWindowMain = true;
         ImGui::Begin("Main Window", &showWindowMain, winFlagsMain);
         ImGui::Text(GUIdeviceInfo.c_str());
-        ImGui::SameLine();
+        ImGui::SameLine(300);
         static bool clicked = false;
         if(clicked) {
             ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.8f, 0.8f));
@@ -1246,566 +1249,702 @@ void ofApp::draw() {
     
     // 1. module window
     {
+        // General window settings
         ImGui::SetNextWindowSize(moduleWindowSize);
-        ImGui::SetNextWindowPos(ImVec2(0, 40));
+        ImGui::SetNextWindowPos(moduleWindowPos);
         ImGuiWindowFlags winFlagsMod = 0;
         winFlagsMod |= ImGuiWindowFlags_NoMove;
         winFlagsMod |= ImGuiWindowFlags_NoResize;
         bool showWindowMod = true;
         ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
-        ImGui::PushItemWidth(60);
-        ImGui::Text("Link: ");
+        // Link quality display
+        ImGui::Text("Link:");
         ImGui::SameLine();
-        static int link = 124;
-        ImGui::SliderInt("", &link, 0, 255);
-        ImGui::SameLine();
-        ImGui::Text("Battery: ");
-        ImGui::SameLine();
-        static int battery = 3;
-        ImGui::SliderInt("", &battery, 0, 255);
+        static float link = 0.0f, ldir = 1.0f;
+        link += ldir * 0.1f * ImGui::GetIO().DeltaTime;
+        if (link >= 1.0f) { link = 1.0f; ldir *= -1.0f; }
+        if (link <= 0.0f) { link = 0.0f; ldir *= -1.0f; }
+        ImGui::PushItemWidth(100);
+        ImGui::ProgressBar(link, ImVec2(0.f, 0.f));
         ImGui::PopItemWidth();
+        // Battery level display
+        ImGui::SameLine();
+        ImGui::Text("Battery:");
+        ImGui::SameLine(234);
+        static float battery = 0.0f, bdir = 1.0f;
+        battery += bdir * 0.1f * ImGui::GetIO().DeltaTime;
+        if (battery >= 1.0f) { battery = 1.0f; bdir *= -1.0f; }
+        if (battery <= 0.0f) { battery = 0.0f; bdir *= -1.0f; }
+        ImGui::PushItemWidth(100);
+        ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
+        ImGui::PopItemWidth();
+        
+        if(ImGui::CollapsingHeader("OSC")) {
+            string label;
+            char txt[OSC_NUMSENDERS][128];
+            int in[OSC_NUMSENDERS];
+            bool en[OSC_NUMSENDERS];
+            string ID;
+            for (int i = 0; i < OSC_NUMSENDERS; i++) {
+                // label
+                label = "Sender#" + ofToString(i+1) + ":";
+                ImGui::Text(label.c_str());
+                // IP
+                ImGui::Text("IP:"); ImGui::SameLine();
+                strcpy(txt[i], rawHIDobject->sendIP[i].c_str());
+                ID = "##txt" + ofToString(i);
+                ImGui::PushItemWidth(100);
+                if(ImGui::InputText(ID.c_str(), txt[i], IM_ARRAYSIZE(txt[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    rawHIDobject->sendIP[i] = ofToString(txt[i]);
+                    if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
+                }
+                ImGui::PopItemWidth();
+                // Port
+                ImGui::SameLine();
+                in[i] = rawHIDobject->sendport[i];
+                ImGui::Text("Port:"); ImGui::SameLine();
+                ID = "##in" + ofToString(i);
+                ImGui::PushItemWidth(84);
+                if(ImGui::InputInt(ID.c_str(), &in[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    rawHIDobject->sendport[i] = in[i];
+                    if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
+                }
+                ImGui::PopItemWidth();
+                // Enable
+                ImGui::SameLine();
+                en[i] = rawHIDobject->senderActive[i];
+                ImGui::Text("En:"); ImGui::SameLine();
+                ID = "##en" + ofToString(i);
+                if(ImGui::Checkbox(ID.c_str(), &en[i])) {
+                    rawHIDobject->senderActive[i] = en[i];
+                    if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
+                }
+            }
+        }
+        
+        if(ImGui::CollapsingHeader("Accelerometer")) {
+            float accel[4];
+            accel[0] = (float)rawHIDobject->IMU[0];
+            accel[1] = (float)rawHIDobject->IMU[1];
+            accel[2] = (float)rawHIDobject->IMU[2];
+            accel[3] = (float)rawHIDobject->summedIMU[0];
+            // X
+            ImGui::Text("X"); ImGui::SameLine(20);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
+            ImGui::PopItemWidth();
+            // Y
+            ImGui::Text("Y"); ImGui::SameLine(200);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##accelY", &accel[1], 0.0f, 1.0f);
+            ImGui::PopItemWidth();
+            // Z
+            ImGui::Text("Z"); ImGui::SameLine(20);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##accelZ", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+            ImGui::PopItemWidth();
+            // Sum
+            ImGui::Text("Sum"); ImGui::SameLine(200);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f);
+            ImGui::PopItemWidth();
+        }
+        
+        if(ImGui::CollapsingHeader("Gyroscope")) {
+            float gyro[4];
+            gyro[0] = (float)rawHIDobject->IMU[3];
+            gyro[1] = (float)rawHIDobject->IMU[4];
+            gyro[2] = (float)rawHIDobject->IMU[5];
+            gyro[3] = (float)rawHIDobject->summedIMU[1];
+            // X
+            ImGui::Text("X"); ImGui::SameLine(20);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
+            ImGui::PopItemWidth();
+            // Y
+            ImGui::Text("Y"); ImGui::SameLine(200);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f);
+            ImGui::PopItemWidth();
+            // Z
+            ImGui::Text("Z"); ImGui::SameLine(20);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
+            ImGui::PopItemWidth();
+            // Sum
+            ImGui::Text("Sum"); ImGui::SameLine(200);
+            ImGui::PushItemWidth(140);
+            ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f);
+            ImGui::PopItemWidth();
+        }
+        
+        if(ImGui::CollapsingHeader("Heading/tilt")) {
+            
+        }
+        
+        if(ImGui::CollapsingHeader("AHRS")) {
+            
+        }
+        
+        if(ImGui::CollapsingHeader("Buttons")) {
+            ImGui::Text(""); ImGui::SameLine(80);
+            ImGui::Checkbox("##but1", &rawHIDobject->button[0]); ImGui::SameLine(200);
+            ImGui::Checkbox("##but2", &rawHIDobject->button[1]);
+            ImGui::Text(""); ImGui::SameLine(85);
+            ImGui::Text("1"); ImGui::SameLine(205);
+            ImGui::Text("2");
+        }
+        
+        if(ImGui::CollapsingHeader("Pressure")) {
+            
+        }
+        
+        if(ImGui::CollapsingHeader("Temperature")) {
+            
+        }
+        
         ImGui::End();
     }
     gui.end();
     
-	if (windowChanged) {
-		if (drawValues == 0) {
-			width = 550;
-			height = 52;
-			ofSetWindowShape(width, height);
-			windowChanged = false;
-		}
-		else if (drawValues == 1) {
-			width = 746;
-			height = 514; // 790
-			timeOut = 5.0;
-			ofSetWindowShape(width, height);
-			windowChanged = false;
-		}
-	}
-
-	if (redrawFlag == 1) // drawn once after first update
-	{
-		// header frame background
-		ofFill();
-		ofSetColor(0, 0, 0, 1);
-        ofDrawRectangle(0, 0, width, 49);
-
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(0, 0, width, 3 * height);
-
-		if (rawHIDobject->rawHID.deviceOpen) {
-			ofSetColor(63, 63, 63, 255);
-		}
-		else {
-			ofSetColor(127, 127, 127, 255);
-		}
-		TTFsmall.drawString(GUIdeviceInfo, anchorx, 18);
-		TTFsmall.drawString(GUIoscInfo[whichStatus], anchorx, 42);
-
-		// separator lines
-		//		ofSetColor(240, 240, 240, 127);
-		//		ofDrawLine(0, anchory-14, width, anchory-14);	
-		//		ofSetColor(127, 127, 127, 127);
-		//		ofDrawLine(0, anchory-13, width, anchory-13);		
-
-		ofSetColor(200, 200, 200, 255);
-
-		// Menu
-		//		ofFill();
-		//		ofSetColor(232, 232, 232);
-		//		ofDrawRectangle(leftColumn, 3, 188, 18);
-		//		ofNoFill();
-		//		ofSetColor(127, 127, 127);
-		//		ofDrawRectangle(leftColumn, 3, 188, 18);
-		//		ofFill();
-		//		ofTriangle(leftColumn+177,7,leftColumn+185, 7, leftColumn+181, 13);
-		//		ofSetColor(0, 0, 0);
-		//		TTFsmall.drawString(rawHIDobject->serialport,leftColumn+5, 16);
-
-		// start/stop button
-		if (rawHIDobject->rawHID.deviceOpen) {
-			ofFill();
-			ofSetColor(255, 255, 255);
-			ofDrawRectangle(rightColumn, 3, 124, 18);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(rightColumn, 3, 124, 18);
-			ofSetColor(0, 0, 0);
-			TTFsmall.drawString("Stop", rightColumn + 48, 16);
-		}
-		else {
-			ofFill();
-			ofSetColor(232, 232, 232);
-			ofDrawRectangle(rightColumn, 3, 124, 18);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(rightColumn, 3, 124, 18);
-			ofSetColor(0, 0, 0);
-			TTFsmall.drawString("Start", rightColumn + 48, 16);
-		}
-
-		// show values button
-		if (!drawValues) {
-			ofFill();
-			ofSetColor(232, 232, 232);
-			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
-			ofSetColor(0, 0, 0);
-			TTFsmall.drawString("Show Values", rightColumn + 28 + 126, 16);
-		}
-		else {
-			ofFill();
-			ofSetColor(255, 255, 255);
-			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
-			ofSetColor(0, 0, 0);
-			TTF.drawString("Hide Values", rightColumn + 32 + 126, 16);
-		}
-		// Calibrate Button
-		ofFill();
-		ofSetColor(232, 232, 232);
-		ofDrawRectangle(375, 480, 124, 20);
-		ofNoFill();
-		ofSetColor(127, 127, 127);
-		ofDrawRectangle(375, 480, 124, 20);
-		ofSetColor(0, 0, 0);
-		TTFsmall.drawString("Calibrate Keys", 375 + 20, 480 + 14);
-
-		// Calibrate Button
-		ofFill();
-		ofSetColor(232, 232, 232);
-		ofDrawRectangle(502, 480, 124, 20);
-		ofNoFill();
-		ofSetColor(127, 127, 127);
-		ofDrawRectangle(502, 480, 124, 20);
-		ofSetColor(0, 0, 0);
-		TTFsmall.drawString("Calibrate Air", 500 + 24, 480 + 14);
-
-		// value display left column
-
-		ofFill();
-		for (i = 0; i < 25; i++) { // stripes
-			if ((i % 2) == 0) {
-				ofSetColor(255, 127, 0, 10);
-				ofDrawRectangle(anchorx - 2, anchory + ((i - 1) * stepsize) + 7, 94, 16);
-			}
-		}
-		for (i = 0; i < 9; i++) { // stripes
-			if ((i % 3) == 0) {
-				ofSetColor(255, 127, 0, 10);
-				ofDrawRectangle(anchorx - 2 + 360, anchory + ((i - 1) * stepsize) + 7, 144, 16);
-			}
-		}
-		ofFill(); // heading
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(anchorx - 2 + 360, anchory + ((8) * stepsize) + 7, 144, 16);
-
-		ofFill(); // button
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(anchorx - 2 + 360, anchory + ((11) * stepsize) + 7, 144, 16);
-
-		ofFill(); // pressure
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(anchorx - 2 + 360, anchory + ((13) * stepsize) + 7, 144, 16);
-
-		ofFill(); // keycode
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(anchorx - 2 + 360, anchory + ((15) * stepsize) + 7, 144, 16);
-
-		ofSetColor(0, 0, 0, 191);
-
-		for (i = 0; i < 25; i++) { // key addresses
-			TTFsmall.drawString(rawHIDobject->keys[i].oscaddress, anchorx, anchory + ((i)* stepsize));
-		}
-		for (i = 0; i < 9; i++) { // imu addresses
-			std::string str = rawHIDobject->imuaddresses[i / 3];
-			std::string::size_type end = str.find_last_of('/');
-			if (end != str.npos)
-				str = str.substr(0, end);
-			TTFsmall.drawString(str, anchorx + 360, anchory + ((i)* stepsize));
-			//			TTFsmall.drawString(str, anchorx + 360, anchory+((i+25) * stepsize) );
-			//			TTFsmall.drawString(rawHIDobject->imuaddresses[i/3], anchorx, anchory+5+((i+25) * stepsize) );
-		}
-
-		TTFsmall.drawString(rawHIDobject->imuaddresses[10], anchorx + 360, anchory + ((9) * stepsize));
-		TTFsmall.drawString(rawHIDobject->imuaddresses[11], anchorx + 360, anchory + ((10) * stepsize));
-
-		for (i = 0; i < 1; i++) { // first button address truncated
-			char temp[64];
-			strncpy(temp, rawHIDobject->buttonaddresses[0].c_str(), rawHIDobject->buttonaddresses[0].size() - 2);
-			temp[rawHIDobject->buttonaddresses[0].size() - 2] = 0;
-			//			TTFsmall.drawString(temp, anchorx + 360, anchory+((i+35) * stepsize) );
-			TTFsmall.drawString(temp, anchorx + 360, anchory + ((i + 12) * stepsize));
-		}
-
-		// air addresses
-		TTFsmall.drawString(rawHIDobject->airaddresses[0], anchorx + 360, anchory + (14 * stepsize));
-
-		// air addresses
-		TTFsmall.drawString(rawHIDobject->keycodeaddress, anchorx + 360, anchory + (16 * stepsize));
-		TTFsmall.drawString(rawHIDobject->midinoteaddress, anchorx + 360, anchory + (17 * stepsize));
-
-		texScreen.loadScreenData(0, 0, 440, 700);
-		drawTex = 1;
-	}
-	else {
-		if (drawTex) {
-			texScreen.draw(0, 0, 440, 266);
-			drawTex = 0;
-		}
-	}
-#pragma mark draw values    
-
-	anchorx = 12;
-	anchory = 66;
-	leftColumn = 110;
-	int midColumn = 150;
-	rightColumn = 220;
-	int farRightColumn = 330;
-
-	int imuColumnLeft = 410;
-
-	stepsize = 18;
-	columnwidth = 180;
-	width = 430;
-	height = 635;
-
-	//if (status == 1 && drawValues)
-	if (drawValues && !hiddenValues) {
-		//			ofFill();
-		//			ofSetColor(200, 200, 200, 255);
-		//			ofDrawRectangle(leftColumn-1, 79, width-leftColumn-5, height-anchory-15);
-		ofSetColor(0, 127, 255, 255);
-
-		for (i = 0; i < 25; i++) { // stripes
-			if ((i % 2) == 0) {
-				ofFill();
-				ofSetColor(255, 127, 0, 10);
-				ofDrawRectangle(leftColumn - 1, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 85, 16);
-				ofSetColor(0, 0, 0, 255);
-			}
-		}
-
-		for (i = 0; i < 9; i++) { // stripes
-			if ((i % 3) == 0) {
-				ofFill();
-				ofSetColor(255, 127, 0, 10);
-				ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 103, 16);
-				ofSetColor(0, 0, 0, 255);
-			}
-		}
-
-		ofFill(); // heading
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((8) * stepsize) + 7, width - leftColumn - 103, 16);
-
-		ofFill(); // button
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((11) * stepsize) + 7, width - leftColumn - 103, 16);
-
-		ofFill(); // pressure
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((13) * stepsize) + 7, width - leftColumn - 103, 16);
-
-		ofFill(); // keycode
-		ofSetColor(255, 127, 0, 10);
-		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((15) * stepsize) + 7, width - leftColumn - 103, 16);
-
-		for (i = 0; i < 25; i++) { // keys
-			ofSetColor(0, 0, 0, 255);
-			yy = anchory + (i * stepsize);
-			TTF.drawString(ofToString(rawHIDobject->keys[i].raw, 6), leftColumn, yy);
-			//                printf("%lx ", keys[i].raw);
-			TTF.drawString(ofToString(rawHIDobject->keys[i].scaled, 6), midColumn, yy);
-			ofNoFill();
-			ofSetColor(91, 91, 91, 255);
-			ofDrawRectangle(rightColumn, yy - 9, 104, 12);
-			ofFill();
-			ofSetColor(0, 0, 0, 127);
-			if (rawHIDobject->calibrate[i]) {
-				ofSetColor(255, 127, 0, 191);
-				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].minimum * rawHIDobject->scale10), yy - 7, (104 * (rawHIDobject->keys[i].maximum - rawHIDobject->keys[i].minimum) * rawHIDobject->scale10), 9);
-				ofSetColor(0, 0, 0, 255);
-				ofDrawRectangle(rightColumn + (104 * (rawHIDobject->keys[i].raw * rawHIDobject->scale10)), yy - 9, 2, 12);
-
-			}
-			else {
-				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].scaled), yy - 9, 2, 12);
-				ofSetColor(91, 91, 91, 255);
-				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy + 4);
-				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy + 4);
-			}
-			// draw binary boxes
-			ofNoFill();
-			ofSetColor(91, 91, 91, 255);
-			ofDrawRectangle(farRightColumn, yy - 9, 12, 12);
-
-			if (rawHIDobject->keys[i].binary) {
-				ofFill();
-				ofSetColor(0, 0, 0, 255);
-				ofDrawRectangle(farRightColumn + 2, yy - 6, 7, 7);
-			}
-			// individual toggles
-			if (rawHIDobject->calibrateSwitch) {
-				if (rawHIDobject->calibrateSingle) {
-
-					if (rawHIDobject->calibrate[i]) {
-						ofFill();
-						ofSetColor(255, 127, 0, 191);
-						ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
-					}
-					ofNoFill();
-					ofSetColor(0, 0, 0);
-					ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
-					TTF.drawString("c", rightColumn + 130, yy + 1);
-				}
-			}
-		}
-
-		for (i = 0; i < 9; i++) { // imu
-			ofSetColor(0, 0, 0, 255);
-			//				yy = anchory+((i+25) * stepsize);
-			yy = anchory + ((i)* stepsize);
-			TTF.drawString(ofToString(rawHIDobject->raw[i], 6), leftColumn + imuColumnLeft, yy);
-			TTF.drawString(ofToString(rawHIDobject->IMU[i], 6), midColumn + 10 + imuColumnLeft, yy);
-			ofNoFill();
-			ofSetColor(91, 91, 91, 255);
-			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-			ofFill();
-			ofSetColor(0, 0, 0, 255);
-			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->IMU[i]), yy - 9, 2, 12);
-			ofNoFill();
-			ofSetColor(91, 91, 91, 255);
-			ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
-		}
-
-		// heading
-		ofSetColor(0, 0, 0, 255);
-		yy = anchory + ((9) * stepsize);
-		TTF.drawString(ofToString(rawHIDobject->heading, 2), midColumn + 10 + imuColumnLeft, yy);
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-		ofFill();
-		ofSetColor(0, 0, 0, 255);
-		ofDrawRectangle(rightColumn + imuColumnLeft + 52 + (rawHIDobject->heading / 3.46153846153846), yy - 9, 2, 12);
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
-
-		// tilt
-		ofSetColor(0, 0, 0, 255);
-		yy = anchory + ((10) * stepsize);
-		TTF.drawString(ofToString(rawHIDobject->tilt, 2), midColumn + 10 + imuColumnLeft, yy);
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-		ofFill();
-		ofSetColor(0, 0, 0, 255);
-		//        ofDrawRectangle( rightColumn + imuColumnLeft + 52 + (52 * rawHIDobject->tilt), yy-9, 2, 12);
-		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->tilt), yy - 9, 2, 12);
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		//        ofDrawLine(rightColumn+52 + imuColumnLeft, yy-9, rightColumn+52 + imuColumnLeft, yy+4);
-
-		// air
-		ofSetColor(0, 0, 0, 255);
-		//			yy = anchory+(34 * stepsize);
-		yy = anchory + (14 * stepsize);
-		TTF.drawString(ofToString(rawHIDobject->air[0], 2), leftColumn + imuColumnLeft, yy);
-		TTF.drawString(ofToString(rawHIDobject->airValue.range, 2), midColumn + 10 + imuColumnLeft, yy);
-
-		TTF.drawString(ofToString(rawHIDobject->keycode, 2), midColumn + 10 + imuColumnLeft, anchory + (16 * stepsize));
-		if (rawHIDobject->validMidiNote) {
-			TTF.drawString(ofToString(rawHIDobject->note, 2), midColumn + 10 + imuColumnLeft, anchory + (17 * stepsize));
-		}
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-		ofFill();
-		ofSetColor(0, 0, 0, 127);
-		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airLong[0] - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
-
-		if (rawHIDobject->airValue.calibratePressureRange) {
-			ofSetColor(255, 224, 0, 191);
-			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 7, (103), 9);
-			// TODO figure scaling for the rangebars
-			ofSetColor(0, 0, 0, 255);
-			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airValue.range - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
-		}
-		else {
-			if (rawHIDobject->airValue.calibrationFlag) {
-				ofFill();
-				ofSetColor(255, 0, 0, 255);
-				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-			}
-			else {
-				ofNoFill();
-				ofSetColor(91, 91, 91, 255);
-				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
-			}
-			ofFill();
-			ofSetColor(0, 0, 0, 127);
-			ofDrawRectangle(rightColumn + imuColumnLeft + CLAMP((104 * rawHIDobject->airValue.range), 0, 104), yy - 9, 2, 12);
-		}
-
-		// buttons
-		ofSetColor(0, 0, 0, 255);
-		//			yy = anchory+((35) * stepsize);
-		yy = anchory + ((12) * stepsize);
-		TTF.drawString(ofToString(rawHIDobject->button[0], 1), midColumn + 10 + imuColumnLeft, yy);
-		TTF.drawString(ofToString(rawHIDobject->button[1], 1), midColumn + 10 + 12 + imuColumnLeft, yy);
-		TTF.drawString(ofToString(rawHIDobject->button[2], 1), midColumn + 10 + 24 + imuColumnLeft, yy);
-
-		ofNoFill();
-		ofSetColor(91, 91, 91, 255);
-		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 12, 12);
-		ofDrawRectangle(rightColumn + imuColumnLeft + 14, yy - 9, 12, 12);
-		ofDrawRectangle(rightColumn + imuColumnLeft + 28, yy - 9, 12, 12);
-
-		ofFill();
-		ofSetColor(0, 0, 0, 255);
-		if (rawHIDobject->button[0]) {
-			ofDrawRectangle(rightColumn + imuColumnLeft + 2, yy - 6, 7, 7);
-		}
-		if (rawHIDobject->button[1]) {
-			ofDrawRectangle(rightColumn + imuColumnLeft + 16, yy - 6, 7, 7);
-		}
-		if (rawHIDobject->button[2]) {
-			ofDrawRectangle(rightColumn + imuColumnLeft + 30, yy - 6, 7, 7);
-		}
-
-		// battery
-		//            ofSetColor(0, 0, 0, 255);
-		////			yy = anchory+((36) * stepsize);
-		//            yy = 40;
-		//			TTF.drawString( "main: "+ofToString((int)(batteryLevelRight*12.5))+"%", anchorx+82 + 360, yy );
-		//			TTF.drawString( "mouthpiece: "+ofToString((int)(batteryLevelAir*12.5))+"%", leftColumn+12 + 360, yy );
-
-		if (rawHIDobject->calibrateSwitch) {
-			ofFill();
-			ofSetColor(255, 127, 0);
-			ofDrawRectangle(375, 480, 124, 20);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(375, 480, 124, 20);
-			ofSetColor(0, 0, 0);
-			TTF.drawString("Calibrating Keys", 375 + 12, 480 + 14);
-
-			if (rawHIDobject->calibrateSingle == 0) {
-				ofFill();
-				ofSetColor(255, 127, 0);
-				ofDrawRectangle(375, 458, 124, 20);
-				ofNoFill();
-				ofSetColor(127, 127, 127);
-				ofDrawRectangle(375, 458, 124, 20);
-				ofSetColor(0, 0, 0);
-				TTF.drawString("Calibrate All...", 375 + 24, 458 + 14);
-			}
-			else {
-				ofNoFill();
-				ofSetColor(127, 127, 127);
-				ofDrawRectangle(375, 458, 124, 20);
-				ofSetColor(0, 0, 0);
-				TTF.drawString("Calibrate All Keys", 375 + 10, 458 + 14);
-			}
-
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(375, 436, 124, 20);
-			ofSetColor(0, 0, 0);
-			TTF.drawString("Reset Key Calibr.", 375 + 12, 436 + 14);
-		}
-
-		if (rawHIDobject->airValue.calibratePressureRange) {
-			ofFill();
-			ofSetColor(255, 224, 0);
-			ofDrawRectangle(502, 480, 124, 20);
-			ofNoFill();
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(502, 480, 124, 20);
-			ofSetColor(0, 0, 0);
-			TTF.drawString("Calibrating Air", 502 + 12, 480 + 14);
-		}
-
-	}
-	else {
-		//printf("SabreServer: couldn't start HID Thread !! can't lock! either an error or the thread has stopped\n");
-	}
-
-
-#pragma mark draw levels
-
-	ofSetColor(63, 63, 63, 255);
-	TTFsmall.drawString("battery: main       air", 280, 34);
-
-	// battery display
-	for (i = 0; i < 15; i++) {
-		pos_x = 360;
-		if (rawHIDobject->batteryLevelRight*6.667 >= (i * 6.667)) {
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
-		}
-	}
-	//    ofDrawRectangle
-	for (i = 0; i < 15; i++) {
-		pos_x = 425;
-		if (rawHIDobject->batteryLevelAir*6.667 >= (i * 6.667)) {
-			ofSetColor(127, 127, 127);
-			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
-		}
-	}
-	ofSetColor(63, 63, 63, 255);
-	ofNoFill();
-	ofDrawRectangle(360, 25, 31, 10);
-	ofDrawRectangle(425, 25, 31, 10);
-	ofDrawRectangle(391, 27, 2, 6);
-	ofDrawRectangle(456, 27, 2, 6);
-
-	ofFill();
-
-
-	ofSetColor(63, 63, 63, 255);
-	TTFsmall.drawString("wireless: left       right      air", 280, 48);
-
-	for (i = 0; i < 8; i++) {
-		pos_x = 360;
-		if ((CLAMP(rawHIDobject->linkQualityLeft, 0, 205) - 0) >= (i * 18)) {
-			ofSetColor(127, 127, 127, 255);
-		}
-		else {
-			ofSetColor(212, 212, 212, 255);
-
-		}
-		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
-	}
-	for (i = 0; i < 8; i++) {
-		pos_x = 430;
-		if ((CLAMP(rawHIDobject->linkQualityRight, 0, 205) - 0) >= (i * 18)) {
-			ofSetColor(127, 127, 127, 255);
-		}
-		else {
-			ofSetColor(212, 212, 212, 255);
-
-		}
-		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
-	}
-	for (i = 0; i < 8; i++) {
-		pos_x = 485;
-		if ((CLAMP(rawHIDobject->linkQualityAir, 0, 205) - 0) >= (i * 18)) {
-			ofSetColor(127, 127, 127, 255);
-		}
-		else {
-			ofSetColor(212, 212, 212, 255);
-
-		}
-		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
-	}
+//	if (windowChanged) {
+//		if (drawValues == 0) {
+//			width = 550;
+//			height = 52;
+//			ofSetWindowShape(width, height);
+//			windowChanged = false;
+//		}
+//		else if (drawValues == 1) {
+//			width = 746;
+//			height = 514; // 790
+//			timeOut = 5.0;
+//			ofSetWindowShape(width, height);
+//			windowChanged = false;
+//		}
+//	}
+//
+//	if (redrawFlag == 1) // drawn once after first update
+//	{
+//		// header frame background
+//		ofFill();
+//		ofSetColor(0, 0, 0, 1);
+//        ofDrawRectangle(0, 0, width, 49);
+//
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(0, 0, width, 3 * height);
+//
+//		if (rawHIDobject->rawHID.deviceOpen) {
+//			ofSetColor(63, 63, 63, 255);
+//		}
+//		else {
+//			ofSetColor(127, 127, 127, 255);
+//		}
+//		TTFsmall.drawString(GUIdeviceInfo, anchorx, 18);
+//		TTFsmall.drawString(GUIoscInfo[whichStatus], anchorx, 42);
+//
+//		// separator lines
+//		//		ofSetColor(240, 240, 240, 127);
+//		//		ofDrawLine(0, anchory-14, width, anchory-14);	
+//		//		ofSetColor(127, 127, 127, 127);
+//		//		ofDrawLine(0, anchory-13, width, anchory-13);		
+//
+//		ofSetColor(200, 200, 200, 255);
+//
+//		// Menu
+//		//		ofFill();
+//		//		ofSetColor(232, 232, 232);
+//		//		ofDrawRectangle(leftColumn, 3, 188, 18);
+//		//		ofNoFill();
+//		//		ofSetColor(127, 127, 127);
+//		//		ofDrawRectangle(leftColumn, 3, 188, 18);
+//		//		ofFill();
+//		//		ofTriangle(leftColumn+177,7,leftColumn+185, 7, leftColumn+181, 13);
+//		//		ofSetColor(0, 0, 0);
+//		//		TTFsmall.drawString(rawHIDobject->serialport,leftColumn+5, 16);
+//
+//		// start/stop button
+//		if (rawHIDobject->rawHID.deviceOpen) {
+//			ofFill();
+//			ofSetColor(255, 255, 255);
+//			ofDrawRectangle(rightColumn, 3, 124, 18);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(rightColumn, 3, 124, 18);
+//			ofSetColor(0, 0, 0);
+//			TTFsmall.drawString("Stop", rightColumn + 48, 16);
+//		}
+//		else {
+//			ofFill();
+//			ofSetColor(232, 232, 232);
+//			ofDrawRectangle(rightColumn, 3, 124, 18);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(rightColumn, 3, 124, 18);
+//			ofSetColor(0, 0, 0);
+//			TTFsmall.drawString("Start", rightColumn + 48, 16);
+//		}
+//
+//		// show values button
+//		if (!drawValues) {
+//			ofFill();
+//			ofSetColor(232, 232, 232);
+//			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
+//			ofSetColor(0, 0, 0);
+//			TTFsmall.drawString("Show Values", rightColumn + 28 + 126, 16);
+//		}
+//		else {
+//			ofFill();
+//			ofSetColor(255, 255, 255);
+//			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(rightColumn + 126, 3, 124, 18);
+//			ofSetColor(0, 0, 0);
+//			TTF.drawString("Hide Values", rightColumn + 32 + 126, 16);
+//		}
+//		// Calibrate Button
+//		ofFill();
+//		ofSetColor(232, 232, 232);
+//		ofDrawRectangle(375, 480, 124, 20);
+//		ofNoFill();
+//		ofSetColor(127, 127, 127);
+//		ofDrawRectangle(375, 480, 124, 20);
+//		ofSetColor(0, 0, 0);
+//		TTFsmall.drawString("Calibrate Keys", 375 + 20, 480 + 14);
+//
+//		// Calibrate Button
+//		ofFill();
+//		ofSetColor(232, 232, 232);
+//		ofDrawRectangle(502, 480, 124, 20);
+//		ofNoFill();
+//		ofSetColor(127, 127, 127);
+//		ofDrawRectangle(502, 480, 124, 20);
+//		ofSetColor(0, 0, 0);
+//		TTFsmall.drawString("Calibrate Air", 500 + 24, 480 + 14);
+//
+//		// value display left column
+//
+//		ofFill();
+//		for (i = 0; i < 25; i++) { // stripes
+//			if ((i % 2) == 0) {
+//				ofSetColor(255, 127, 0, 10);
+//				ofDrawRectangle(anchorx - 2, anchory + ((i - 1) * stepsize) + 7, 94, 16);
+//			}
+//		}
+//		for (i = 0; i < 9; i++) { // stripes
+//			if ((i % 3) == 0) {
+//				ofSetColor(255, 127, 0, 10);
+//				ofDrawRectangle(anchorx - 2 + 360, anchory + ((i - 1) * stepsize) + 7, 144, 16);
+//			}
+//		}
+//		ofFill(); // heading
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(anchorx - 2 + 360, anchory + ((8) * stepsize) + 7, 144, 16);
+//
+//		ofFill(); // button
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(anchorx - 2 + 360, anchory + ((11) * stepsize) + 7, 144, 16);
+//
+//		ofFill(); // pressure
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(anchorx - 2 + 360, anchory + ((13) * stepsize) + 7, 144, 16);
+//
+//		ofFill(); // keycode
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(anchorx - 2 + 360, anchory + ((15) * stepsize) + 7, 144, 16);
+//
+//		ofSetColor(0, 0, 0, 191);
+//
+//		for (i = 0; i < 25; i++) { // key addresses
+//			TTFsmall.drawString(rawHIDobject->keys[i].oscaddress, anchorx, anchory + ((i)* stepsize));
+//		}
+//		for (i = 0; i < 9; i++) { // imu addresses
+//			std::string str = rawHIDobject->imuaddresses[i / 3];
+//			std::string::size_type end = str.find_last_of('/');
+//			if (end != str.npos)
+//				str = str.substr(0, end);
+//			TTFsmall.drawString(str, anchorx + 360, anchory + ((i)* stepsize));
+//			//			TTFsmall.drawString(str, anchorx + 360, anchory+((i+25) * stepsize) );
+//			//			TTFsmall.drawString(rawHIDobject->imuaddresses[i/3], anchorx, anchory+5+((i+25) * stepsize) );
+//		}
+//
+//		TTFsmall.drawString(rawHIDobject->imuaddresses[10], anchorx + 360, anchory + ((9) * stepsize));
+//		TTFsmall.drawString(rawHIDobject->imuaddresses[11], anchorx + 360, anchory + ((10) * stepsize));
+//
+//		for (i = 0; i < 1; i++) { // first button address truncated
+//			char temp[64];
+//			strncpy(temp, rawHIDobject->buttonaddresses[0].c_str(), rawHIDobject->buttonaddresses[0].size() - 2);
+//			temp[rawHIDobject->buttonaddresses[0].size() - 2] = 0;
+//			//			TTFsmall.drawString(temp, anchorx + 360, anchory+((i+35) * stepsize) );
+//			TTFsmall.drawString(temp, anchorx + 360, anchory + ((i + 12) * stepsize));
+//		}
+//
+//		// air addresses
+//		TTFsmall.drawString(rawHIDobject->airaddresses[0], anchorx + 360, anchory + (14 * stepsize));
+//
+//		// air addresses
+//		TTFsmall.drawString(rawHIDobject->keycodeaddress, anchorx + 360, anchory + (16 * stepsize));
+//		TTFsmall.drawString(rawHIDobject->midinoteaddress, anchorx + 360, anchory + (17 * stepsize));
+//
+//		texScreen.loadScreenData(0, 0, 440, 700);
+//		drawTex = 1;
+//	}
+//	else {
+//		if (drawTex) {
+//			texScreen.draw(0, 0, 440, 266);
+//			drawTex = 0;
+//		}
+//	}
+//#pragma mark draw values    
+//
+//	anchorx = 12;
+//	anchory = 66;
+//	leftColumn = 110;
+//	int midColumn = 150;
+//	rightColumn = 220;
+//	int farRightColumn = 330;
+//
+//	int imuColumnLeft = 410;
+//
+//	stepsize = 18;
+//	columnwidth = 180;
+//	width = 430;
+//	height = 635;
+//
+//	//if (status == 1 && drawValues)
+//	if (drawValues && !hiddenValues) {
+//		//			ofFill();
+//		//			ofSetColor(200, 200, 200, 255);
+//		//			ofDrawRectangle(leftColumn-1, 79, width-leftColumn-5, height-anchory-15);
+//		ofSetColor(0, 127, 255, 255);
+//
+//		for (i = 0; i < 25; i++) { // stripes
+//			if ((i % 2) == 0) {
+//				ofFill();
+//				ofSetColor(255, 127, 0, 10);
+//				ofDrawRectangle(leftColumn - 1, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 85, 16);
+//				ofSetColor(0, 0, 0, 255);
+//			}
+//		}
+//
+//		for (i = 0; i < 9; i++) { // stripes
+//			if ((i % 3) == 0) {
+//				ofFill();
+//				ofSetColor(255, 127, 0, 10);
+//				ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((i - 1) * stepsize) + 7, width - leftColumn - 103, 16);
+//				ofSetColor(0, 0, 0, 255);
+//			}
+//		}
+//
+//		ofFill(); // heading
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((8) * stepsize) + 7, width - leftColumn - 103, 16);
+//
+//		ofFill(); // button
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((11) * stepsize) + 7, width - leftColumn - 103, 16);
+//
+//		ofFill(); // pressure
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((13) * stepsize) + 7, width - leftColumn - 103, 16);
+//
+//		ofFill(); // keycode
+//		ofSetColor(255, 127, 0, 10);
+//		ofDrawRectangle(leftColumn - 1 + imuColumnLeft, anchory + ((15) * stepsize) + 7, width - leftColumn - 103, 16);
+//
+//		for (i = 0; i < 25; i++) { // keys
+//			ofSetColor(0, 0, 0, 255);
+//			yy = anchory + (i * stepsize);
+//			TTF.drawString(ofToString(rawHIDobject->keys[i].raw, 6), leftColumn, yy);
+//			//                printf("%lx ", keys[i].raw);
+//			TTF.drawString(ofToString(rawHIDobject->keys[i].scaled, 6), midColumn, yy);
+//			ofNoFill();
+//			ofSetColor(91, 91, 91, 255);
+//			ofDrawRectangle(rightColumn, yy - 9, 104, 12);
+//			ofFill();
+//			ofSetColor(0, 0, 0, 127);
+//			if (rawHIDobject->calibrate[i]) {
+//				ofSetColor(255, 127, 0, 191);
+//				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].minimum * rawHIDobject->scale10), yy - 7, (104 * (rawHIDobject->keys[i].maximum - rawHIDobject->keys[i].minimum) * rawHIDobject->scale10), 9);
+//				ofSetColor(0, 0, 0, 255);
+//				ofDrawRectangle(rightColumn + (104 * (rawHIDobject->keys[i].raw * rawHIDobject->scale10)), yy - 9, 2, 12);
+//
+//			}
+//			else {
+//				ofDrawRectangle(rightColumn + (104 * rawHIDobject->keys[i].scaled), yy - 9, 2, 12);
+//				ofSetColor(91, 91, 91, 255);
+//				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshDown), yy + 4);
+//				ofDrawLine(rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy - 9, rightColumn + (104 * rawHIDobject->keys[i].threshUp), yy + 4);
+//			}
+//			// draw binary boxes
+//			ofNoFill();
+//			ofSetColor(91, 91, 91, 255);
+//			ofDrawRectangle(farRightColumn, yy - 9, 12, 12);
+//
+//			if (rawHIDobject->keys[i].binary) {
+//				ofFill();
+//				ofSetColor(0, 0, 0, 255);
+//				ofDrawRectangle(farRightColumn + 2, yy - 6, 7, 7);
+//			}
+//			// individual toggles
+//			if (rawHIDobject->calibrateSwitch) {
+//				if (rawHIDobject->calibrateSingle) {
+//
+//					if (rawHIDobject->calibrate[i]) {
+//						ofFill();
+//						ofSetColor(255, 127, 0, 191);
+//						ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
+//					}
+//					ofNoFill();
+//					ofSetColor(0, 0, 0);
+//					ofDrawRectangle(rightColumn + 126, yy - 9, 16, 12);
+//					TTF.drawString("c", rightColumn + 130, yy + 1);
+//				}
+//			}
+//		}
+//
+//		for (i = 0; i < 9; i++) { // imu
+//			ofSetColor(0, 0, 0, 255);
+//			//				yy = anchory+((i+25) * stepsize);
+//			yy = anchory + ((i)* stepsize);
+//			TTF.drawString(ofToString(rawHIDobject->raw[i], 6), leftColumn + imuColumnLeft, yy);
+//			TTF.drawString(ofToString(rawHIDobject->IMU[i], 6), midColumn + 10 + imuColumnLeft, yy);
+//			ofNoFill();
+//			ofSetColor(91, 91, 91, 255);
+//			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//			ofFill();
+//			ofSetColor(0, 0, 0, 255);
+//			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->IMU[i]), yy - 9, 2, 12);
+//			ofNoFill();
+//			ofSetColor(91, 91, 91, 255);
+//			ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
+//		}
+//
+//		// heading
+//		ofSetColor(0, 0, 0, 255);
+//		yy = anchory + ((9) * stepsize);
+//		TTF.drawString(ofToString(rawHIDobject->heading, 2), midColumn + 10 + imuColumnLeft, yy);
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//		ofFill();
+//		ofSetColor(0, 0, 0, 255);
+//		ofDrawRectangle(rightColumn + imuColumnLeft + 52 + (rawHIDobject->heading / 3.46153846153846), yy - 9, 2, 12);
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		ofDrawLine(rightColumn + 52 + imuColumnLeft, yy - 9, rightColumn + 52 + imuColumnLeft, yy + 4);
+//
+//		// tilt
+//		ofSetColor(0, 0, 0, 255);
+//		yy = anchory + ((10) * stepsize);
+//		TTF.drawString(ofToString(rawHIDobject->tilt, 2), midColumn + 10 + imuColumnLeft, yy);
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//		ofFill();
+//		ofSetColor(0, 0, 0, 255);
+//		//        ofDrawRectangle( rightColumn + imuColumnLeft + 52 + (52 * rawHIDobject->tilt), yy-9, 2, 12);
+//		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * rawHIDobject->tilt), yy - 9, 2, 12);
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		//        ofDrawLine(rightColumn+52 + imuColumnLeft, yy-9, rightColumn+52 + imuColumnLeft, yy+4);
+//
+//		// air
+//		ofSetColor(0, 0, 0, 255);
+//		//			yy = anchory+(34 * stepsize);
+//		yy = anchory + (14 * stepsize);
+//		TTF.drawString(ofToString(rawHIDobject->air[0], 2), leftColumn + imuColumnLeft, yy);
+//		TTF.drawString(ofToString(rawHIDobject->airValue.range, 2), midColumn + 10 + imuColumnLeft, yy);
+//
+//		TTF.drawString(ofToString(rawHIDobject->keycode, 2), midColumn + 10 + imuColumnLeft, anchory + (16 * stepsize));
+//		if (rawHIDobject->validMidiNote) {
+//			TTF.drawString(ofToString(rawHIDobject->note, 2), midColumn + 10 + imuColumnLeft, anchory + (17 * stepsize));
+//		}
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//		ofFill();
+//		ofSetColor(0, 0, 0, 127);
+//		ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airLong[0] - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
+//
+//		if (rawHIDobject->airValue.calibratePressureRange) {
+//			ofSetColor(255, 224, 0, 191);
+//			ofDrawRectangle(rightColumn + imuColumnLeft, yy - 7, (103), 9);
+//			// TODO figure scaling for the rangebars
+//			ofSetColor(0, 0, 0, 255);
+//			ofDrawRectangle(rightColumn + imuColumnLeft + (104 * (CLAMP(((rawHIDobject->airValue.range - 500.0) * 0.001), 0, 1))), yy - 9, 2, 12);
+//		}
+//		else {
+//			if (rawHIDobject->airValue.calibrationFlag) {
+//				ofFill();
+//				ofSetColor(255, 0, 0, 255);
+//				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//			}
+//			else {
+//				ofNoFill();
+//				ofSetColor(91, 91, 91, 255);
+//				ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 104, 12);
+//			}
+//			ofFill();
+//			ofSetColor(0, 0, 0, 127);
+//			ofDrawRectangle(rightColumn + imuColumnLeft + CLAMP((104 * rawHIDobject->airValue.range), 0, 104), yy - 9, 2, 12);
+//		}
+//
+//		// buttons
+//		ofSetColor(0, 0, 0, 255);
+//		//			yy = anchory+((35) * stepsize);
+//		yy = anchory + ((12) * stepsize);
+//		TTF.drawString(ofToString(rawHIDobject->button[0], 1), midColumn + 10 + imuColumnLeft, yy);
+//		TTF.drawString(ofToString(rawHIDobject->button[1], 1), midColumn + 10 + 12 + imuColumnLeft, yy);
+//		TTF.drawString(ofToString(rawHIDobject->button[2], 1), midColumn + 10 + 24 + imuColumnLeft, yy);
+//
+//		ofNoFill();
+//		ofSetColor(91, 91, 91, 255);
+//		ofDrawRectangle(rightColumn + imuColumnLeft, yy - 9, 12, 12);
+//		ofDrawRectangle(rightColumn + imuColumnLeft + 14, yy - 9, 12, 12);
+//		ofDrawRectangle(rightColumn + imuColumnLeft + 28, yy - 9, 12, 12);
+//
+//		ofFill();
+//		ofSetColor(0, 0, 0, 255);
+//		if (rawHIDobject->button[0]) {
+//			ofDrawRectangle(rightColumn + imuColumnLeft + 2, yy - 6, 7, 7);
+//		}
+//		if (rawHIDobject->button[1]) {
+//			ofDrawRectangle(rightColumn + imuColumnLeft + 16, yy - 6, 7, 7);
+//		}
+//		if (rawHIDobject->button[2]) {
+//			ofDrawRectangle(rightColumn + imuColumnLeft + 30, yy - 6, 7, 7);
+//		}
+//
+//		// battery
+//		//            ofSetColor(0, 0, 0, 255);
+//		////			yy = anchory+((36) * stepsize);
+//		//            yy = 40;
+//		//			TTF.drawString( "main: "+ofToString((int)(batteryLevelRight*12.5))+"%", anchorx+82 + 360, yy );
+//		//			TTF.drawString( "mouthpiece: "+ofToString((int)(batteryLevelAir*12.5))+"%", leftColumn+12 + 360, yy );
+//
+//		if (rawHIDobject->calibrateSwitch) {
+//			ofFill();
+//			ofSetColor(255, 127, 0);
+//			ofDrawRectangle(375, 480, 124, 20);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(375, 480, 124, 20);
+//			ofSetColor(0, 0, 0);
+//			TTF.drawString("Calibrating Keys", 375 + 12, 480 + 14);
+//
+//			if (rawHIDobject->calibrateSingle == 0) {
+//				ofFill();
+//				ofSetColor(255, 127, 0);
+//				ofDrawRectangle(375, 458, 124, 20);
+//				ofNoFill();
+//				ofSetColor(127, 127, 127);
+//				ofDrawRectangle(375, 458, 124, 20);
+//				ofSetColor(0, 0, 0);
+//				TTF.drawString("Calibrate All...", 375 + 24, 458 + 14);
+//			}
+//			else {
+//				ofNoFill();
+//				ofSetColor(127, 127, 127);
+//				ofDrawRectangle(375, 458, 124, 20);
+//				ofSetColor(0, 0, 0);
+//				TTF.drawString("Calibrate All Keys", 375 + 10, 458 + 14);
+//			}
+//
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(375, 436, 124, 20);
+//			ofSetColor(0, 0, 0);
+//			TTF.drawString("Reset Key Calibr.", 375 + 12, 436 + 14);
+//		}
+//
+//		if (rawHIDobject->airValue.calibratePressureRange) {
+//			ofFill();
+//			ofSetColor(255, 224, 0);
+//			ofDrawRectangle(502, 480, 124, 20);
+//			ofNoFill();
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(502, 480, 124, 20);
+//			ofSetColor(0, 0, 0);
+//			TTF.drawString("Calibrating Air", 502 + 12, 480 + 14);
+//		}
+//
+//	}
+//	else {
+//		//printf("SabreServer: couldn't start HID Thread !! can't lock! either an error or the thread has stopped\n");
+//	}
+//
+//
+//#pragma mark draw levels
+//
+//	ofSetColor(63, 63, 63, 255);
+//	TTFsmall.drawString("battery: main       air", 280, 34);
+//
+//	// battery display
+//	for (i = 0; i < 15; i++) {
+//		pos_x = 360;
+//		if (rawHIDobject->batteryLevelRight*6.667 >= (i * 6.667)) {
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
+//		}
+//	}
+//	//    ofDrawRectangle
+//	for (i = 0; i < 15; i++) {
+//		pos_x = 425;
+//		if (rawHIDobject->batteryLevelAir*6.667 >= (i * 6.667)) {
+//			ofSetColor(127, 127, 127);
+//			ofDrawRectangle(pos_x + i * 2, 25, 2, 10);
+//		}
+//	}
+//	ofSetColor(63, 63, 63, 255);
+//	ofNoFill();
+//	ofDrawRectangle(360, 25, 31, 10);
+//	ofDrawRectangle(425, 25, 31, 10);
+//	ofDrawRectangle(391, 27, 2, 6);
+//	ofDrawRectangle(456, 27, 2, 6);
+//
+//	ofFill();
+//
+//
+//	ofSetColor(63, 63, 63, 255);
+//	TTFsmall.drawString("wireless: left       right      air", 280, 48);
+//
+//	for (i = 0; i < 8; i++) {
+//		pos_x = 360;
+//		if ((CLAMP(rawHIDobject->linkQualityLeft, 0, 205) - 0) >= (i * 18)) {
+//			ofSetColor(127, 127, 127, 255);
+//		}
+//		else {
+//			ofSetColor(212, 212, 212, 255);
+//
+//		}
+//		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+//	}
+//	for (i = 0; i < 8; i++) {
+//		pos_x = 430;
+//		if ((CLAMP(rawHIDobject->linkQualityRight, 0, 205) - 0) >= (i * 18)) {
+//			ofSetColor(127, 127, 127, 255);
+//		}
+//		else {
+//			ofSetColor(212, 212, 212, 255);
+//
+//		}
+//		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+//	}
+//	for (i = 0; i < 8; i++) {
+//		pos_x = 485;
+//		if ((CLAMP(rawHIDobject->linkQualityAir, 0, 205) - 0) >= (i * 18)) {
+//			ofSetColor(127, 127, 127, 255);
+//		}
+//		else {
+//			ofSetColor(212, 212, 212, 255);
+//
+//		}
+//		ofDrawRectangle(pos_x + i * 4, 36 + (10 - i), 2, 2 + i);
+//	}
 
 
 	/* template code */

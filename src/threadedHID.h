@@ -197,10 +197,12 @@ public:
 	// battery level
 	int batteryLevelRight;
 	int batteryLevelAir;
+    int batteryLevel;
 	// radio transducer link quality
 	int linkQualityLeft;
 	int linkQualityRight;
 	int linkQualityAir;
+    int linkQuality;
 	// key calibration buffers
 	int keymin[SABRE_MAXNUMMESSAGES];
 	int keymax[SABRE_MAXNUMMESSAGES];
