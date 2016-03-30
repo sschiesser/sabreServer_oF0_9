@@ -80,12 +80,13 @@ void ofApp::setup() {
 //    ImGui::GetIO().MouseDrawCursor = false;
     fontDisplay = io.Fonts->AddFontFromFileTTF(&ofToDataPath("lucidagrande.ttf")[0], 14.f);
     fontClock = io.Fonts->AddFontFromFileTTF(&ofToDataPath("lucidagrande.ttf")[0], 24.f);
+    fontScale = io.Fonts->AddFontFromFileTTF(&ofToDataPath("lucidagrande.ttf")[0], 10.f);
     io.Fonts->GetTexDataAsRGBA32(&fontPx, &fontW, &fontH);
 
     gui.setup();
     backgroundColorMain = ofColor(114, 144, 154);
     
-//	ofSetEscapeQuitsApp(false); // disable ESC button to escape application
+	if(!appDebug) ofSetEscapeQuitsApp(false); // disable ESC button to escape application
 //	ofEnableAlphaBlending(); // turn on alpha blending
 //	TTF.load("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
 //	TTFsmall.load("lucidagrande.ttf", 8, 1, 0, 0);
@@ -163,18 +164,6 @@ void ofApp::setup() {
 	}
 	/* Make sure that the HID device and the HID/OSCsender thread are closed/stopped */
 	stopHID();
-
-	/* template code */
-	//parameters.setName("parameters");
-	//parameters.add(size.set("size",10,1,100));
-	//parameters.add(number.set("number",10,1,100));
-	//parameters.add(check.set("check",false));
-	//parameters.add(color.set("color",ofColor(127),ofColor(0,0),ofColor(255)));
-	//gui.setup(parameters);
-	//// by now needs to pass the gui parameter groups since the panel internally creates it's own group
-	//sync.setup((ofParameterGroup&)gui.getParameter(),6667,"localhost",6666);
-	//ofSetVerticalSync(true);
-	/* template code */
 }
 
 //--------------------------------------------------------------
@@ -252,7 +241,14 @@ bool ofApp::selectHIDdevice() {
 
 //--------------------------------------------------------------
 void ofApp::update(){
+    /* Calulate elapsed time when HID thread is running */
+    if (rawHIDobject->rawHID.deviceOpen) {
+        rawHIDobject->systemTimestamp = ofGetElapsedTimeMillis() - rawHIDobject->systemTimestampBase;
+    }
+    
 	//receiveOSC();
+    
+    /* Warn if HID device has been unplugged */
 	if (rawHIDobject->rawHID.deviceUnplugged) {
 		ofSystemAlertDialog("Device not plugged in or not recognized!");
 		rawHIDobject->rawHID.closeDevice(); // "disconnect" the HID device
@@ -261,9 +257,6 @@ void ofApp::update(){
 		rawHIDobject->rawHID.deviceSelected = false;
 		rawHIDobject->rawHID.deviceUnplugged = false; // reset deviceUnplugged flag to avoid dialog window continuously coming
 	}
-	/* template code */
-	//sync.update();
-	/* template code */
 }
 
 //--------------------------------------------------------------
@@ -1277,7 +1270,7 @@ void ofApp::draw() {
         ImGui::Text("Current framerate: %.1f FPS", ImGui::GetIO().Framerate);
         ImGui::EndGroup();
         /* Start/stop button */
-        ImGui::SameLine(240);
+        ImGui::SameLine(286);
         bool running = rawHIDobject->rawHID.deviceOpen;
         ImGui::PushFont(fontClock);
         if(running) { // thread currently running...
@@ -1322,7 +1315,7 @@ void ofApp::draw() {
             ImGuiWindowFlags winFlagsMod = 0;
             winFlagsMod |= ImGuiWindowFlags_NoMove;
             winFlagsMod |= ImGuiWindowFlags_NoResize;
-            bool showWindowMod = true;
+            bool showWindowMod = false;
             ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
             // Link quality display
             ImGui::Text("Link:");
@@ -1392,30 +1385,43 @@ void ofApp::draw() {
         // Accelerometer header
         {
             if(ImGui::CollapsingHeader("Accelerometer")) {
-                float accel[4];
-                accel[0] = (float)rawHIDobject->IMU[0];
-                accel[1] = (float)rawHIDobject->IMU[1];
-                accel[2] = (float)rawHIDobject->IMU[2];
-                accel[3] = (float)rawHIDobject->summedIMU[0];
+                static float accel[4];
+                static ImVector<float> accelPlot[4];
+                static int accelPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(accelPlot[i].empty()) {
+                        accelPlot[i].resize(50);
+                        memset(accelPlot[i].Data, 0, accelPlot[i].Size * sizeof(float));
+                    }
+                    accel[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[0]) : ((float)rawHIDobject->IMU[i]) );
+                    accelPlot[i][accelPlotOffset[i]] =  accel[i];
+                    accelPlotOffset[i] = (accelPlotOffset[i] + 1) % accelPlot[i].Size;
+                }
+
                 // X
-                ImGui::Text("X"); ImGui::SameLine(20);
+                ImGui::Text("X"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
                 ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[0].Data, accelPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Y
-                ImGui::Text("Y"); ImGui::SameLine(200);
+                ImGui::Text("Y"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
-                ImGui::SliderFloat("##accelY", &accel[1], 0.0f, 1.0f);
+                ImGui::SliderFloat("##accelX", &accel[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[1].Data, accelPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Z
-                ImGui::Text("Z"); ImGui::SameLine(20);
+                ImGui::Text("Z"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
-                ImGui::SliderFloat("##accelZ", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::SliderFloat("##accelX", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[2].Data, accelPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Sum
-                ImGui::Text("Sum"); ImGui::SameLine(200);
+                ImGui::Text("Sum"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
-                ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f);
+                ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelSi,Plot", accelPlot[3].Data, accelPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
             }
         }
@@ -1423,30 +1429,42 @@ void ofApp::draw() {
         // Gyroscope header
         {
             if(ImGui::CollapsingHeader("Gyroscope")) {
-                float gyro[4];
-                gyro[0] = (float)rawHIDobject->IMU[3];
-                gyro[1] = (float)rawHIDobject->IMU[4];
-                gyro[2] = (float)rawHIDobject->IMU[5];
-                gyro[3] = (float)rawHIDobject->summedIMU[1];
+                static float gyro[4];
+                static ImVector<float> gyroPlot[4];
+                static int gyroPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(gyroPlot[i].empty()) {
+                        gyroPlot[i].resize(50);
+                        memset(gyroPlot[i].Data, 0, gyroPlot[i].Size * sizeof(float));
+                    }
+                    gyro[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[1]) : ((float)rawHIDobject->IMU[i+3]) );
+                    gyroPlot[i][gyroPlotOffset[i]] =  gyro[i];
+                    gyroPlotOffset[i] = (gyroPlotOffset[i] + 1) % gyroPlot[i].Size;
+                }
                 // X
-                ImGui::Text("X"); ImGui::SameLine(20);
+                ImGui::Text("X"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
                 ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroXPlot", gyroPlot[0].Data, gyroPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Y
-                ImGui::Text("Y"); ImGui::SameLine(200);
+                ImGui::Text("Y"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
-                ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f);
+                ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroYPlot", gyroPlot[1].Data, gyroPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Z
-                ImGui::Text("Z"); ImGui::SameLine(20);
+                ImGui::Text("Z"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
                 ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroZPlot", gyroPlot[2].Data, gyroPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
                 // Sum
-                ImGui::Text("Sum"); ImGui::SameLine(200);
+                ImGui::Text("Sum"); ImGui::SameLine(40);
                 ImGui::PushItemWidth(140);
-                ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f);
+                ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroSumPlot", gyroPlot[3].Data, gyroPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
                 ImGui::PopItemWidth();
             }
         }
@@ -1491,30 +1509,61 @@ void ofApp::draw() {
             }
         }
         
-        // System time header
+        // Packet transmition header
         {
-            if(ImGui::CollapsingHeader("System time")) {
+            if(ImGui::CollapsingHeader("Packets transmition")) {
+                static float plotRange = 40.f;
+                static float plotDiv = plotRange/5.f;
                 static ImVector<float> tslVals;
                 static int tslValsOffset = 0;
                 if (tslVals.empty()) {
-                    tslVals.resize(90);
+                    tslVals.resize(100);
                     memset(tslVals.Data, 0, tslVals.Size * sizeof(float));
                 }
                 tslVals[tslValsOffset] = (float)rawHIDobject->deltaTimeL/1000;
+//                tslVals[tslValsOffset] = 16.f;
                 tslValsOffset = (tslValsOffset + 1) % tslVals.Size;
-                ImGui::PlotHistogram("##tsLeft", tslVals.Data, tslVals.Size, 0, "TS Left", 0.0f, 20.0f, ImVec2(0, 80));
-                ImGui::Text("TS Left: %.1f ms", ((float)rawHIDobject->deltaTimeL/1000));
+                ImGui::BeginGroup();
+                ImGui::PlotHistogram("##deltaLeft", tslVals.Data, tslVals.Size, 0, "Delta left (ms)", 0.0f, plotRange, ImVec2(0, 80));
+                ImGui::SameLine();
+                ImGui::PushFont(fontScale);
+                ImGui::BeginGroup();
+                ImGui::Text("");
+                ImGui::Text("- %.0f", (4*plotDiv));
+                ImGui::Text("- %.0f", (3*plotDiv));
+                ImGui::Text("- %.0f", (2*plotDiv));
+                ImGui::Text("- %.0f", plotDiv);
+                ImGui::Text("- %.0f", 0.f);
+                ImGui::EndGroup();
+                ImGui::PopFont();
+                ImGui::EndGroup();
+                ImGui::Text("Delta: %.1f ms", ((float)rawHIDobject->deltaTimeL/1000));
+                ImGui::Spacing();
+                ImGui::Spacing();
                 
                 static ImVector<float> tsrVals;
                 static int tsrValsOffset = 0;
                 if (tsrVals.empty()) {
-                    tsrVals.resize(90);
+                    tsrVals.resize(100);
                     memset(tsrVals.Data, 0, tsrVals.Size * sizeof(float));
                 }
                 tsrVals[tsrValsOffset] = ((float)rawHIDobject->deltaTimeR/1000);
                 tsrValsOffset = (tsrValsOffset + 1) % tsrVals.Size;
-                ImGui::PlotHistogram("##tsRight", tsrVals.Data, tsrVals.Size, 0, "TS Right", 0.0f, 20.0f, ImVec2(0, 80));
-                ImGui::Text("TS Right: %.1f ms", ((float)rawHIDobject->deltaTimeR/1000));
+                ImGui::BeginGroup();
+                ImGui::PlotHistogram("##deltaRight", tsrVals.Data, tsrVals.Size, 0, "Delta right (ms)", 0.0f, plotRange, ImVec2(0, 80));
+                ImGui::SameLine();
+                ImGui::PushFont(fontScale);
+                ImGui::BeginGroup();
+                ImGui::Text("");
+                ImGui::Text("- %.0f", (4*plotDiv));
+                ImGui::Text("- %.0f", (3*plotDiv));
+                ImGui::Text("- %.0f", (2*plotDiv));
+                ImGui::Text("- %.0f", plotDiv);
+                ImGui::Text("- %.0f", 0.f);
+                ImGui::EndGroup();
+                ImGui::PopFont();
+                ImGui::EndGroup();
+                ImGui::Text("Delta: %.1f ms", ((float)rawHIDobject->deltaTimeR/1000));
             }
         }
         

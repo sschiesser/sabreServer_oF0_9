@@ -149,6 +149,7 @@ class ofApp : public ofBaseApp
     ImVec2 moduleWindowPos;
     ImFont *fontClock;
     ImFont *fontDisplay;
+    ImFont *fontScale;
     unsigned char* fontPx;
     int fontW, fontH;
     
