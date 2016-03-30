@@ -90,10 +90,6 @@ void threadedOSC::sendOSC()
 		oscMsg[61].setAddress( serialObject->timestampAddressLeft ); // timestamp Left
         oscMsg[61].addIntArg( serialObject->timestampLeft );
 		oscSender.sendMessage( oscMsg[61] );
-        
-//		serialObject->systime = ofGetElapsedTimeMillis();
-//		serialObject->systemTimestamp = serialObject->systime - serialObject->oldSystime;
-//		serialObject->oldSystime = serialObject->systime;
     
         oscMsg[62].clear();
 		oscMsg[62].setAddress( serialObject->timestampAddressServer ); // timestamp

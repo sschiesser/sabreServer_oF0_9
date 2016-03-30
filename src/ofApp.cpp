@@ -59,7 +59,7 @@ void ofApp::setup() {
     appWindowSize.x = APP_WINDOW_WIDTH;
     appWindowSize.y = APP_WINDOW_HEIGHT;
     moduleWindowPos.x = 0;
-    moduleWindowPos.y = 40;
+    moduleWindowPos.y = 48;
     moduleWindowSize.x = 350;
     moduleWindowSize.y = APP_WINDOW_HEIGHT - moduleWindowPos.y;
 
@@ -76,15 +76,20 @@ void ofApp::setup() {
 	rawHIDobject = new(threadedHID); // create a new threaded HID object
 
 	/* GUI initialization */
+    ImGuiIO io = ImGui::GetIO();
+//    ImGui::GetIO().MouseDrawCursor = false;
+    fontDisplay = io.Fonts->AddFontFromFileTTF(&ofToDataPath("lucidagrande.ttf")[0], 14.f);
+    fontClock = io.Fonts->AddFontFromFileTTF(&ofToDataPath("lucidagrande.ttf")[0], 24.f);
+    io.Fonts->GetTexDataAsRGBA32(&fontPx, &fontW, &fontH);
+
     gui.setup();
-    ImGui::GetIO().MouseDrawCursor = false;
     backgroundColorMain = ofColor(114, 144, 154);
     
-	ofSetEscapeQuitsApp(false); // disable ESC button to escape application
-	ofEnableAlphaBlending(); // turn on alpha blending
-	TTF.load("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
-	TTFsmall.load("lucidagrande.ttf", 8, 1, 0, 0);
-	texScreen.allocate(440, 700, GL_RGB); // allocate a texture to the given dimensions
+//	ofSetEscapeQuitsApp(false); // disable ESC button to escape application
+//	ofEnableAlphaBlending(); // turn on alpha blending
+//	TTF.load("lucidagrande.ttf", 8, 1, 1, 0); // load font (must be in 'data' folder)
+//	TTFsmall.load("lucidagrande.ttf", 8, 1, 0, 0);
+//	texScreen.allocate(440, 700, GL_RGB); // allocate a texture to the given dimensions
     ofSetWindowTitle(titleString); // set window title
 	windowChanged = true; // flag to activate a window refresh
 	drawValues = true; // flag to activate a values redraw
@@ -326,6 +331,8 @@ bool ofApp::startHID()
 		retVal = false;
 	}
 
+    if(retVal) rawHIDobject->systemTimestampBase = ofGetElapsedTimeMillis();
+    
 	return retVal;
 }
 
@@ -543,8 +550,7 @@ bool ofApp::readPrefs()
 		rawHIDobject->numOSCloops = rawHIDobject->OSCsendingInterval * 2;
 
 		framerate = XML.getValue("sabre:framerate", 20);
-
-
+        if(appDebug) printf("[ofApp::readPrefs] Framerate: %d\n", framerate);
 		numTags = XML.getNumTags("sabre:network:sender");
 		if (numTags > 0) {
 			XML.pushTag("sabre", numTags - 1);
@@ -957,7 +963,7 @@ bool ofApp::controlHID() {
             }
         }
     }
-    printf("[ofApp::controlHID] returning %s\n", (retVal) ? "TRUE" : "FALSE");
+    if(appDebug) printf("[ofApp::controlHID] returning %s\n", (retVal) ? "TRUE" : "FALSE");
     return retVal;
 }
 
@@ -1251,23 +1257,11 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 
 //--------------------------------------------------------------
 void ofApp::draw() {
-//	int i;
-//	int anchorx = 15;
-//	int anchory = 66;
-//	int stepsize = 18;
-//	int columnwidth = 200;
-//	int rightColumn = 270;
-//	int leftColumn = 10;
-//	int width = 0;
-//	int height = 0;
-//	double yy;
-//	int pos_x;
-
     ofSetBackgroundColor(backgroundColorMain);
     gui.begin();
     // Main window
     {
-        ImGui::SetNextWindowSize(ImVec2(ofGetWidth(), 40));
+        ImGui::SetNextWindowSize(ImVec2(ofGetWidth(), 48));
         ImGui::SetNextWindowPos(ImVec2(0,0));
         ImGuiWindowFlags winFlagsMain = 0;
         winFlagsMain |= ImGuiWindowFlags_NoMove;
@@ -1275,11 +1269,17 @@ void ofApp::draw() {
         winFlagsMain |= ImGuiWindowFlags_NoTitleBar;
         bool showWindowMain = true;
         ImGui::Begin("Main Window", &showWindowMain, winFlagsMain);
+        ImGui::BeginGroup();
+        ImGui::BeginGroup();
         /* HID device info */
         ImGui::Text(GUIdeviceInfo.c_str());
-        ImGui::SameLine(300);
+        /* Framerate */
+        ImGui::Text("Current framerate: %.1f FPS", ImGui::GetIO().Framerate);
+        ImGui::EndGroup();
         /* Start/stop button */
+        ImGui::SameLine(240);
         bool running = rawHIDobject->rawHID.deviceOpen;
+        ImGui::PushFont(fontClock);
         if(running) { // thread currently running...
             ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.8f, 0.8f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(1/7.0f, 0.9f, 0.9f));
@@ -1297,167 +1297,225 @@ void ofApp::draw() {
             }
         }
         ImGui::PopStyleColor(3);
+        ImGui::PopFont();
+        /* Timecode */
+        ImGui::SameLine(360);
+        long ts = rawHIDobject->systemTimestamp;
+        long ms = ts % 1000;
+        long s = ((ts - ms)/1000) % 60;
+        long m = ((((ts - ms)/1000) - s)/60) % 60;
+        long h = (((((ts - ms)/1000) - s)/60) - m)/60;
+        ImGui::PushFont(fontClock);
+        ImGui::Text("Systime: %ldh %02ldm %02lds %03ld", h, m, s, ms);
+        ImGui::PopFont();
+        
+        ImGui::EndGroup();
         ImGui::End();
     }
     
     // 1. module window
     {
         // General window settings
-        ImGui::SetNextWindowSize(moduleWindowSize);
-        ImGui::SetNextWindowPos(moduleWindowPos);
-        ImGuiWindowFlags winFlagsMod = 0;
-        winFlagsMod |= ImGuiWindowFlags_NoMove;
-        winFlagsMod |= ImGuiWindowFlags_NoResize;
-        bool showWindowMod = true;
-        ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
-        // Link quality display
-        ImGui::Text("Link:");
-        ImGui::SameLine();
-        float link = (float)rawHIDobject->linkQualityLeft/256.0f; //0.0f, ldir = 1.0f;
-//        link += ldir * 0.1f * ImGui::GetIO().DeltaTime;
-        char buf[32];
-        sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
-//        if (link >= 1.0f) { link = 1.0f; ldir *= -1.0f; }
-//        if (link <= 0.0f) { link = 0.0f; ldir *= -1.0f; }
-        ImGui::PushItemWidth(100);
-        ImGui::ProgressBar(link, ImVec2(0.f, 0.f), buf);
-        ImGui::PopItemWidth();
-        // Battery level display
-        ImGui::SameLine();
-        ImGui::Text("Battery:");
-        ImGui::SameLine(234);
-        float battery = (float)rawHIDobject->batteryLevelRight; // 0.0f, bdir = 1.0f;
-//        battery += bdir * 0.1f * ImGui::GetIO().DeltaTime;
-//        if (battery >= 1.0f) { battery = 1.0f; bdir *= -1.0f; }
-//        if (battery <= 0.0f) { battery = 0.0f; bdir *= -1.0f; }
-        ImGui::PushItemWidth(100);
-        ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
-        ImGui::PopItemWidth();
-//        printf("linkQuality = %d, batteryLevel = %d\n", rawHIDobject->linkQualityLeft, rawHIDobject->batteryLevelRight);
-//        printf("link = %f, battery = %f\n", link, battery);
+        {
+            ImGui::SetNextWindowSize(moduleWindowSize);
+            ImGui::SetNextWindowPos(moduleWindowPos);
+            ImGuiWindowFlags winFlagsMod = 0;
+            winFlagsMod |= ImGuiWindowFlags_NoMove;
+            winFlagsMod |= ImGuiWindowFlags_NoResize;
+            bool showWindowMod = true;
+            ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
+            // Link quality display
+            ImGui::Text("Link:");
+            ImGui::SameLine();
+            float link = (float)rawHIDobject->linkQualityLeft/256.0f;
+            char buf[32];
+            sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(link, ImVec2(0.f, 0.f), buf);
+            ImGui::PopItemWidth();
+            // Battery level display
+            ImGui::SameLine();
+            ImGui::Text("Battery:");
+            ImGui::SameLine(234);
+            float battery = (float)rawHIDobject->batteryLevelRight;
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
+            ImGui::PopItemWidth();
+        }
         
-        if(ImGui::CollapsingHeader("OSC")) {
-            string label;
-            char txt[OSC_NUMSENDERS][128];
-            int in[OSC_NUMSENDERS];
-            bool en[OSC_NUMSENDERS];
-            string ID;
-            for (int i = 0; i < OSC_NUMSENDERS; i++) {
-                // label
-                label = "Sender#" + ofToString(i+1) + ":";
-                ImGui::Text(label.c_str());
-                // IP
-                ImGui::Text("IP:"); ImGui::SameLine();
-                strcpy(txt[i], rawHIDobject->sendIP[i].c_str());
-                ID = "##txt" + ofToString(i);
-                ImGui::PushItemWidth(100);
-                if(ImGui::InputText(ID.c_str(), txt[i], IM_ARRAYSIZE(txt[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    rawHIDobject->sendIP[i] = ofToString(txt[i]);
-                    if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
-                }
-                ImGui::PopItemWidth();
-                // Port
-                ImGui::SameLine();
-                in[i] = rawHIDobject->sendport[i];
-                ImGui::Text("Port:"); ImGui::SameLine();
-                ID = "##in" + ofToString(i);
-                ImGui::PushItemWidth(84);
-                if(ImGui::InputInt(ID.c_str(), &in[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                    rawHIDobject->sendport[i] = in[i];
-                    if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
-                }
-                ImGui::PopItemWidth();
-                // Enable
-                ImGui::SameLine();
-                en[i] = rawHIDobject->senderActive[i];
-                ImGui::Text("En:"); ImGui::SameLine();
-                ID = "##en" + ofToString(i);
-                if(ImGui::Checkbox(ID.c_str(), &en[i])) {
-                    rawHIDobject->senderActive[i] = en[i];
-                    if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
+        // OSC header
+        {
+            if(ImGui::CollapsingHeader("OSC")) {
+                string label;
+                char txt[OSC_NUMSENDERS][128];
+                int in[OSC_NUMSENDERS];
+                bool en[OSC_NUMSENDERS];
+                string ID;
+                for (int i = 0; i < OSC_NUMSENDERS; i++) {
+                    // label
+                    label = "Sender#" + ofToString(i+1) + ":";
+                    ImGui::Text(label.c_str());
+                    // IP
+                    ImGui::Text("IP:"); ImGui::SameLine();
+                    strcpy(txt[i], rawHIDobject->sendIP[i].c_str());
+                    ID = "##txt" + ofToString(i);
+                    ImGui::PushItemWidth(100);
+                    if(ImGui::InputText(ID.c_str(), txt[i], IM_ARRAYSIZE(txt[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendIP[i] = ofToString(txt[i]);
+                        if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
+                    }
+                    ImGui::PopItemWidth();
+                    // Port
+                    ImGui::SameLine();
+                    in[i] = rawHIDobject->sendport[i];
+                    ImGui::Text("Port:"); ImGui::SameLine();
+                    ID = "##in" + ofToString(i);
+                    ImGui::PushItemWidth(84);
+                    if(ImGui::InputInt(ID.c_str(), &in[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendport[i] = in[i];
+                        if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
+                    }
+                    ImGui::PopItemWidth();
+                    // Enable
+                    ImGui::SameLine();
+                    en[i] = rawHIDobject->senderActive[i];
+                    ImGui::Text("En:"); ImGui::SameLine();
+                    ID = "##en" + ofToString(i);
+                    if(ImGui::Checkbox(ID.c_str(), &en[i])) {
+                        rawHIDobject->senderActive[i] = en[i];
+                        if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
+                    }
                 }
             }
         }
         
-        if(ImGui::CollapsingHeader("Accelerometer")) {
-            float accel[4];
-            accel[0] = (float)rawHIDobject->IMU[0];
-            accel[1] = (float)rawHIDobject->IMU[1];
-            accel[2] = (float)rawHIDobject->IMU[2];
-            accel[3] = (float)rawHIDobject->summedIMU[0];
-            // X
-            ImGui::Text("X"); ImGui::SameLine(20);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
-            ImGui::PopItemWidth();
-            // Y
-            ImGui::Text("Y"); ImGui::SameLine(200);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##accelY", &accel[1], 0.0f, 1.0f);
-            ImGui::PopItemWidth();
-            // Z
-            ImGui::Text("Z"); ImGui::SameLine(20);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##accelZ", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
-            ImGui::PopItemWidth();
-            // Sum
-            ImGui::Text("Sum"); ImGui::SameLine(200);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f);
-            ImGui::PopItemWidth();
+        // Accelerometer header
+        {
+            if(ImGui::CollapsingHeader("Accelerometer")) {
+                float accel[4];
+                accel[0] = (float)rawHIDobject->IMU[0];
+                accel[1] = (float)rawHIDobject->IMU[1];
+                accel[2] = (float)rawHIDobject->IMU[2];
+                accel[3] = (float)rawHIDobject->summedIMU[0];
+                // X
+                ImGui::Text("X"); ImGui::SameLine(20);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(200);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelY", &accel[1], 0.0f, 1.0f);
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(20);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelZ", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(200);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f);
+                ImGui::PopItemWidth();
+            }
         }
         
-        if(ImGui::CollapsingHeader("Gyroscope")) {
-            float gyro[4];
-            gyro[0] = (float)rawHIDobject->IMU[3];
-            gyro[1] = (float)rawHIDobject->IMU[4];
-            gyro[2] = (float)rawHIDobject->IMU[5];
-            gyro[3] = (float)rawHIDobject->summedIMU[1];
-            // X
-            ImGui::Text("X"); ImGui::SameLine(20);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
-            ImGui::PopItemWidth();
-            // Y
-            ImGui::Text("Y"); ImGui::SameLine(200);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f);
-            ImGui::PopItemWidth();
-            // Z
-            ImGui::Text("Z"); ImGui::SameLine(20);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
-            ImGui::PopItemWidth();
-            // Sum
-            ImGui::Text("Sum"); ImGui::SameLine(200);
-            ImGui::PushItemWidth(140);
-            ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f);
-            ImGui::PopItemWidth();
+        // Gyroscope header
+        {
+            if(ImGui::CollapsingHeader("Gyroscope")) {
+                float gyro[4];
+                gyro[0] = (float)rawHIDobject->IMU[3];
+                gyro[1] = (float)rawHIDobject->IMU[4];
+                gyro[2] = (float)rawHIDobject->IMU[5];
+                gyro[3] = (float)rawHIDobject->summedIMU[1];
+                // X
+                ImGui::Text("X"); ImGui::SameLine(20);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(200);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f);
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(20);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(200);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f);
+                ImGui::PopItemWidth();
+            }
         }
         
-        if(ImGui::CollapsingHeader("Heading/tilt")) {
-            
+        // Heading/tilt header
+        {
+            if(ImGui::CollapsingHeader("Heading/tilt")) {
+                
+            }
         }
         
-        if(ImGui::CollapsingHeader("AHRS")) {
-            
+        // AHRS header
+        {
+            if(ImGui::CollapsingHeader("AHRS")) {
+                
+            }
         }
         
-        if(ImGui::CollapsingHeader("Buttons")) {
-            ImGui::Text(""); ImGui::SameLine(80);
-            ImGui::Checkbox("##but1", &rawHIDobject->button[0]); ImGui::SameLine(200);
-            ImGui::Checkbox("##but2", &rawHIDobject->button[1]);
-            ImGui::Text(""); ImGui::SameLine(85);
-            ImGui::Text("1"); ImGui::SameLine(205);
-            ImGui::Text("2");
+        // Buttons header
+        {
+            if(ImGui::CollapsingHeader("Buttons")) {
+                ImGui::Text(""); ImGui::SameLine(80);
+                ImGui::Checkbox("##but1", &rawHIDobject->button[0]); ImGui::SameLine(200);
+                ImGui::Checkbox("##but2", &rawHIDobject->button[1]);
+                ImGui::Text(""); ImGui::SameLine(85);
+                ImGui::Text("1"); ImGui::SameLine(205);
+                ImGui::Text("2");
+            }
         }
         
-        if(ImGui::CollapsingHeader("Pressure")) {
-            
+        // Pressure header
+        {
+            if(ImGui::CollapsingHeader("Pressure")) {
+                
+            }
         }
         
-        if(ImGui::CollapsingHeader("Temperature")) {
-            
+        // Temperature header
+        {
+            if(ImGui::CollapsingHeader("Temperature")) {
+                
+            }
+        }
+        
+        // System time header
+        {
+            if(ImGui::CollapsingHeader("System time")) {
+                static ImVector<float> tslVals;
+                static int tslValsOffset = 0;
+                if (tslVals.empty()) {
+                    tslVals.resize(90);
+                    memset(tslVals.Data, 0, tslVals.Size * sizeof(float));
+                }
+                tslVals[tslValsOffset] = (float)rawHIDobject->deltaTimeL/1000;
+                tslValsOffset = (tslValsOffset + 1) % tslVals.Size;
+                ImGui::PlotHistogram("##tsLeft", tslVals.Data, tslVals.Size, 0, "TS Left", 0.0f, 20.0f, ImVec2(0, 80));
+                ImGui::Text("TS Left: %.1f ms", ((float)rawHIDobject->deltaTimeL/1000));
+                
+                static ImVector<float> tsrVals;
+                static int tsrValsOffset = 0;
+                if (tsrVals.empty()) {
+                    tsrVals.resize(90);
+                    memset(tsrVals.Data, 0, tsrVals.Size * sizeof(float));
+                }
+                tsrVals[tsrValsOffset] = ((float)rawHIDobject->deltaTimeR/1000);
+                tsrValsOffset = (tsrValsOffset + 1) % tsrVals.Size;
+                ImGui::PlotHistogram("##tsRight", tsrVals.Data, tsrVals.Size, 0, "TS Right", 0.0f, 20.0f, ImVec2(0, 80));
+                ImGui::Text("TS Right: %.1f ms", ((float)rawHIDobject->deltaTimeR/1000));
+            }
         }
         
         ImGui::End();

@@ -159,6 +159,7 @@ threadedHID::threadedHID()
 
 	OSCprevTime = ofGetElapsedTimeMillis();
 	OSCsenderOpen = false;
+    systemTimestamp = systemTimestampBase = 0;
 
 	keycode = 0;
 	keycodeOld = 0;
@@ -799,7 +800,7 @@ void threadedHID::sendOSC(int ID, bool resetFlags)
 		
 //		if(appDebug) printf("[threadedHID::sendOSC] sending OSC on sender# %d with reset %d\n", ID, resetFlags);
 		/* Get the latest timestamp */
-		systemTimestamp = ofGetElapsedTimeMillis();
+        systemTimestamp = ofGetElapsedTimeMillis() - systemTimestampBase;
 		
 		/* TODO: send full dataframe */
         if(sendFullFrame) {

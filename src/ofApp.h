@@ -147,6 +147,10 @@ class ofApp : public ofBaseApp
     ImVec2 appWindowSize;
     ImVec2 moduleWindowSize;
     ImVec2 moduleWindowPos;
+    ImFont *fontClock;
+    ImFont *fontDisplay;
+    unsigned char* fontPx;
+    int fontW, fontH;
     
 		threadedHID * rawHIDobject;
 

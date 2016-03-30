@@ -257,6 +257,7 @@ public:
 	long deltaTimeL;
 	long deltaTimeR;
 	long systemTimestamp;
+    long systemTimestampBase;
 	    
 	// draw flag
     bool drawValues;
