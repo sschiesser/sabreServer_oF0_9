@@ -1220,7 +1220,7 @@ void ofApp::draw() {
     gui.begin();
     // Main window
     {
-        ImGui::SetNextWindowSize(appWindowSize);
+        ImGui::SetNextWindowSize(ImVec2(350, 40));
         ImGui::SetNextWindowPos(ImVec2(0,0));
         ImGuiWindowFlags winFlagsMain = 0;
         winFlagsMain |= ImGuiWindowFlags_NoMove;
@@ -1253,31 +1253,35 @@ void ofApp::draw() {
         ImGui::SetNextWindowSize(moduleWindowSize);
         ImGui::SetNextWindowPos(moduleWindowPos);
         ImGuiWindowFlags winFlagsMod = 0;
-        winFlagsMod |= ImGuiWindowFlags_NoMove;
+//        winFlagsMod |= ImGuiWindowFlags_NoMove;
         winFlagsMod |= ImGuiWindowFlags_NoResize;
         bool showWindowMod = true;
         ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
         // Link quality display
         ImGui::Text("Link:");
         ImGui::SameLine();
-        static float link = 0.0f, ldir = 1.0f;
-        link += ldir * 0.1f * ImGui::GetIO().DeltaTime;
-        if (link >= 1.0f) { link = 1.0f; ldir *= -1.0f; }
-        if (link <= 0.0f) { link = 0.0f; ldir *= -1.0f; }
+        float link = (float)rawHIDobject->linkQualityLeft/256.0f; //0.0f, ldir = 1.0f;
+//        link += ldir * 0.1f * ImGui::GetIO().DeltaTime;
+        char buf[32];
+        sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
+//        if (link >= 1.0f) { link = 1.0f; ldir *= -1.0f; }
+//        if (link <= 0.0f) { link = 0.0f; ldir *= -1.0f; }
         ImGui::PushItemWidth(100);
-        ImGui::ProgressBar(link, ImVec2(0.f, 0.f));
+        ImGui::ProgressBar(link, ImVec2(0.f, 0.f), buf);
         ImGui::PopItemWidth();
         // Battery level display
         ImGui::SameLine();
         ImGui::Text("Battery:");
         ImGui::SameLine(234);
-        static float battery = 0.0f, bdir = 1.0f;
-        battery += bdir * 0.1f * ImGui::GetIO().DeltaTime;
-        if (battery >= 1.0f) { battery = 1.0f; bdir *= -1.0f; }
-        if (battery <= 0.0f) { battery = 0.0f; bdir *= -1.0f; }
+        float battery = (float)rawHIDobject->batteryLevelRight; // 0.0f, bdir = 1.0f;
+//        battery += bdir * 0.1f * ImGui::GetIO().DeltaTime;
+//        if (battery >= 1.0f) { battery = 1.0f; bdir *= -1.0f; }
+//        if (battery <= 0.0f) { battery = 0.0f; bdir *= -1.0f; }
         ImGui::PushItemWidth(100);
         ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
         ImGui::PopItemWidth();
+//        printf("linkQuality = %d, batteryLevel = %d\n", rawHIDobject->linkQualityLeft, rawHIDobject->batteryLevelRight);
+//        printf("link = %f, battery = %f\n", link, battery);
         
         if(ImGui::CollapsingHeader("OSC")) {
             string label;
