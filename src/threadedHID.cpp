@@ -74,6 +74,7 @@ threadedHID::threadedHID()
 	//	accelScale = scale11;
     // v3.5 comm structure
 	accelResolution = 4;
+    accelRange = 4;
 	accelOffset = 32768;
 	accelScale = scale16;
 	
@@ -588,7 +589,7 @@ void threadedHID::parseIMU()
 			rawIMU[i] = raw[i] + accelOffset; // accelOffset = 0.5 * 2^16 = 32768
 		}
         /* Put out of the loop to set the IMU[] positions to the correct xyz axes */
-        IMU[0] = rawIMU[SABRE_IMU_ACCELXPOS] * accelScale;
+        IMU[0] = (rawIMU[SABRE_IMU_ACCELXPOS] * accelScale);
         IMU[0] = CLAMP(IMU[0], 0.0, 1.0);
         IMU[1] = rawIMU[SABRE_IMU_ACCELYPOS] * accelScale;
         IMU[1] = CLAMP(IMU[1], 0.0, 1.0);

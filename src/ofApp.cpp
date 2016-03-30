@@ -315,7 +315,7 @@ bool ofApp::startHID()
 			if (appDebug) printf("[ofApp::startHID] Failed to open HID thread\n");
 
 			/* Display error on the GUI */
-			GUIdeviceInfo = "ERROR: unable to open!";
+			GUIdeviceInfo = "RawHID device: ERROR - unable to open!";
 
 			retVal = false;
 		}
@@ -915,6 +915,53 @@ void ofApp::resetSingleCalibrate(int i)
 }
 
 //--------------------------------------------------------------
+bool ofApp::controlHID() {
+    bool retVal = false;
+    /* First check if a device is selected and ready to open */
+    if (!rawHIDobject->rawHID.deviceSelected) {
+        /* If no device slected, do an enumeration and selection */
+        getHIDDeviceList();
+        /* If device successfully selected, just change flag for next step */
+        if (selectHIDdevice()) {
+            rawHIDobject->rawHID.deviceSelected = true;
+        }
+        /* If no device selected, set 'unplugged' flag to recall the system alert dialog box and return false to re-set the button to 'not running' */
+        else {
+            rawHIDobject->rawHID.deviceSelected = false;
+            rawHIDobject->rawHID.deviceUnplugged = true;
+            retVal = false;
+        }
+    }
+    
+    /* If a compatible device has been found and is selected, check device open status */
+    if(rawHIDobject->rawHID.deviceSelected) {
+        /* Device open --> stopping */
+        if (rawHIDobject->rawHID.deviceOpen) {
+            stopHID();
+            retVal = false;
+        }
+        /* Device closed --> starting */
+        else {
+            stopHID();
+            int num = startOSC();
+            if (num > 0) {
+                /* If HID thread start did not work, stop previously opened OSC senders,
+                 * and reset the flags in order to re-start an enumeration */
+                if (!startHID()) {
+                    stopOSC();
+                    rawHIDobject->rawHID.deviceSelected = false;
+                    rawHIDobject->rawHID.deviceUnplugged = true;
+                    retVal = false;
+                }
+                retVal = true;
+            }
+        }
+    }
+    printf("[ofApp::controlHID] returning %s\n", (retVal) ? "TRUE" : "FALSE");
+    return retVal;
+}
+
+//--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 
 }
@@ -1010,165 +1057,165 @@ void ofApp::mousePressed(int x, int y, int button){
 	/* ----------------- *
 	 * Start/stop button *
 	 * ----------------- */
-	if (x > 270 && x < 394 && y > 4 && y < 25) {
-		if(appDebug) printf("\n------------------------------------\nstart/stop clicked\n - device selected? %s\n - device open? %s\n------------------------------------\n", (rawHIDobject->rawHID.deviceSelected ? "YES" : "NO"), (rawHIDobject->rawHID.deviceOpen ? "OPEN" : "CLOSED"));
-
-		/* First check if a device is selected and ready to open */
-		if (!rawHIDobject->rawHID.deviceSelected) {
-			/* If no device slected, do an enumeration and selection */
-			getHIDDeviceList();
-			/* If device successfully selected, just change flag for next step */
-			if (selectHIDdevice()) {
-				rawHIDobject->rawHID.deviceSelected = true;
-			}
-			/* If no device selected, set 'unplugged' flag to recall the system alert dialog box */
-			else {
-				rawHIDobject->rawHID.deviceSelected = false;
-				rawHIDobject->rawHID.deviceUnplugged = true;
-			}
-		}
-
-		/* If a compatible device has been found and is selected, check device open status */
-		if(rawHIDobject->rawHID.deviceSelected) {
-			/* Device open --> stopping */
-			if (rawHIDobject->rawHID.deviceOpen) {
-				stopHID();
-			}
-			/* Device closed --> starting */
-			else {
-				stopHID();
-				int num = startOSC();
-				if (num > 0) {
-					/* If HID thread start did not work, stop previously opened OSC senders,
-					 * and reset the flags in order to re-start an enumeration */
-					if (!startHID()) {
-						stopOSC();
-						rawHIDobject->rawHID.deviceSelected = false;
-						rawHIDobject->rawHID.deviceUnplugged = true;
-					}
-				}
-			}
-
-			drawValues = !hiddenValues;
-			rawHIDobject->drawValues = !hiddenValues;
-		}
-
-		windowChanged = true;
-		redrawFlag = 1;
-	}
+//	if (x > 270 && x < 394 && y > 4 && y < 25) {
+//		if(appDebug) printf("\n------------------------------------\nstart/stop clicked\n - device selected? %s\n - device open? %s\n------------------------------------\n", (rawHIDobject->rawHID.deviceSelected ? "YES" : "NO"), (rawHIDobject->rawHID.deviceOpen ? "OPEN" : "CLOSED"));
+//
+//		/* First check if a device is selected and ready to open */
+//		if (!rawHIDobject->rawHID.deviceSelected) {
+//			/* If no device slected, do an enumeration and selection */
+//			getHIDDeviceList();
+//			/* If device successfully selected, just change flag for next step */
+//			if (selectHIDdevice()) {
+//				rawHIDobject->rawHID.deviceSelected = true;
+//			}
+//			/* If no device selected, set 'unplugged' flag to recall the system alert dialog box */
+//			else {
+//				rawHIDobject->rawHID.deviceSelected = false;
+//				rawHIDobject->rawHID.deviceUnplugged = true;
+//			}
+//		}
+//
+//		/* If a compatible device has been found and is selected, check device open status */
+//		if(rawHIDobject->rawHID.deviceSelected) {
+//			/* Device open --> stopping */
+//			if (rawHIDobject->rawHID.deviceOpen) {
+//				stopHID();
+//			}
+//			/* Device closed --> starting */
+//			else {
+//				stopHID();
+//				int num = startOSC();
+//				if (num > 0) {
+//					/* If HID thread start did not work, stop previously opened OSC senders,
+//					 * and reset the flags in order to re-start an enumeration */
+//					if (!startHID()) {
+//						stopOSC();
+//						rawHIDobject->rawHID.deviceSelected = false;
+//						rawHIDobject->rawHID.deviceUnplugged = true;
+//					}
+//				}
+//			}
+//
+//			drawValues = !hiddenValues;
+//			rawHIDobject->drawValues = !hiddenValues;
+//		}
+//
+//		windowChanged = true;
+//		redrawFlag = 1;
+//	}
 
 	/* ---------------- *
 	 * Show/hide values *
 	 * ---------------- */
-	if (x > 397 && x < 520 && y > 3 && y < 24) {
-        /* Hide values */
-		if (drawValues != 0) {
-			if(appDebug) printf("[ofApp::mousePressed] Hiding values\n");
-			drawValues = false;
-			hiddenValues = true;
-			rawHIDobject->drawValues = 0;
-			rawHIDobject->calibrateSwitch = 0;
-		}
-        /* Show values */
-		else {
-			if (appDebug) printf("[ofApp::mousePressed] Showing values\n");
-			drawValues = true;
-			hiddenValues = false;
-			rawHIDobject->drawValues = 1;
-		}
-		windowChanged = true;
-		redrawFlag = 1;
-	}
+//	if (x > 397 && x < 520 && y > 3 && y < 24) {
+//        /* Hide values */
+//		if (drawValues != 0) {
+//			if(appDebug) printf("[ofApp::mousePressed] Hiding values\n");
+//			drawValues = false;
+//			hiddenValues = true;
+//			rawHIDobject->drawValues = 0;
+//			rawHIDobject->calibrateSwitch = 0;
+//		}
+//        /* Show values */
+//		else {
+//			if (appDebug) printf("[ofApp::mousePressed] Showing values\n");
+//			drawValues = true;
+//			hiddenValues = false;
+//			rawHIDobject->drawValues = 1;
+//		}
+//		windowChanged = true;
+//		redrawFlag = 1;
+//	}
 
 	/* -------------------------- *
 	 * Main keys calibrate button *
 	 * -------------------------- */
 	// ofDrawRectangle(295, 690, 124, 20);
-	if (x > 375 && x < 500 && y > 480 && y < 500) {
-		/* Switch off */
-		if (rawHIDobject->calibrateSwitch != 0) {
-			rawHIDobject->calibrateSwitch = 0;
-			rawHIDobject->calibrateSingle = 0;
-			for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
-				rawHIDobject->calibrate[i] = 0;
-			}
-			writeScaling();
-
-		}
-		/* Switch on */
-		else {
-			rawHIDobject->calibrateSwitch = 1;
-			rawHIDobject->calibrateSingle = 1;
-			//            for(i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
-			//				rawHIDobject->calibrate[i] = 1;
-			//			}
-			//            
-			//			resetCalibrate();
-		}
-		//		printf("rawHIDobject->calibrateSwitch is %d\n", rawHIDobject->calibrate);
-	}
-	if (rawHIDobject->calibrateSwitch) {
-		// click in calibrateAll == calibrateSingle flag :: conditional on main calibrate button
-		if (x > 375 && x < 500 && y > 458 && y < 478) {
-			if (rawHIDobject->calibrateSingle != 0) { // switch off
-				rawHIDobject->calibrateSingle = 0;
-				// reset all to zero
-				for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
-					rawHIDobject->calibrate[i] = 1;
-				}
-				resetCalibrate();
-			}
-			else { // switch on
-				rawHIDobject->calibrateSingle = 1;
-				for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
-					rawHIDobject->calibrate[i] = 0;
-				}
-				writeScaling();
-
-			}
-			//            printf("rawHIDobject->calibrateSingle is %d\n", rawHIDobject->calibrateSingle);
-		}
-
-		if (x > 346 && x < 362) {
-			int yy = y - 57;
-			i = yy / 18;
-			//            printf("clicked inside calibrate toggle Nr. %d at pos %d %d\n",i, x, y);
-			if (rawHIDobject->calibrate[i] == 0) {
-				rawHIDobject->calibrate[i] = 1;
-				resetSingleCalibrate(i);
-			}
-			else {
-				rawHIDobject->calibrate[i] = 0;
-				writeScaling();
-			}
-		}
-
-		if (x > 375 && x < 500 && y > 436 && y < 456) {
-			//            printf("clicked in reset Calibration");
-			for (int i = 0; i < rawHIDobject->numKeyAddr; i++)
-			{
-				rawHIDobject->keys[i].minimum = 0;
-				rawHIDobject->keys[i].maximum = 1023;
-			}
-		}
-
-	}
+//	if (x > 375 && x < 500 && y > 480 && y < 500) {
+//		/* Switch off */
+//		if (rawHIDobject->calibrateSwitch != 0) {
+//			rawHIDobject->calibrateSwitch = 0;
+//			rawHIDobject->calibrateSingle = 0;
+//			for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
+//				rawHIDobject->calibrate[i] = 0;
+//			}
+//			writeScaling();
+//
+//		}
+//		/* Switch on */
+//		else {
+//			rawHIDobject->calibrateSwitch = 1;
+//			rawHIDobject->calibrateSingle = 1;
+//			//            for(i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
+//			//				rawHIDobject->calibrate[i] = 1;
+//			//			}
+//			//            
+//			//			resetCalibrate();
+//		}
+//		//		printf("rawHIDobject->calibrateSwitch is %d\n", rawHIDobject->calibrate);
+//	}
+//	if (rawHIDobject->calibrateSwitch) {
+//		// click in calibrateAll == calibrateSingle flag :: conditional on main calibrate button
+//		if (x > 375 && x < 500 && y > 458 && y < 478) {
+//			if (rawHIDobject->calibrateSingle != 0) { // switch off
+//				rawHIDobject->calibrateSingle = 0;
+//				// reset all to zero
+//				for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
+//					rawHIDobject->calibrate[i] = 1;
+//				}
+//				resetCalibrate();
+//			}
+//			else { // switch on
+//				rawHIDobject->calibrateSingle = 1;
+//				for (i = 0; i < SABRE_MAXNUMMESSAGES; i++) {
+//					rawHIDobject->calibrate[i] = 0;
+//				}
+//				writeScaling();
+//
+//			}
+//			//            printf("rawHIDobject->calibrateSingle is %d\n", rawHIDobject->calibrateSingle);
+//		}
+//
+//		if (x > 346 && x < 362) {
+//			int yy = y - 57;
+//			i = yy / 18;
+//			//            printf("clicked inside calibrate toggle Nr. %d at pos %d %d\n",i, x, y);
+//			if (rawHIDobject->calibrate[i] == 0) {
+//				rawHIDobject->calibrate[i] = 1;
+//				resetSingleCalibrate(i);
+//			}
+//			else {
+//				rawHIDobject->calibrate[i] = 0;
+//				writeScaling();
+//			}
+//		}
+//
+//		if (x > 375 && x < 500 && y > 436 && y < 456) {
+//			//            printf("clicked in reset Calibration");
+//			for (int i = 0; i < rawHIDobject->numKeyAddr; i++)
+//			{
+//				rawHIDobject->keys[i].minimum = 0;
+//				rawHIDobject->keys[i].maximum = 1023;
+//			}
+//		}
+//
+//	}
 
 	/* -------------------------------- *
 	 * Calibrate pressure min/max range *
 	 * -------------------------------- */
-	if (x > 502 && x < 627 && y > 480 && y < 500) {
-		if (rawHIDobject->airValue.calibratePressureRange == true) {
-			rawHIDobject->airValue.calibratePressureRange = false;
-			//            printf("finished calibrating air with values minimum %f maximum %f\n",rawHIDobject->airValue.minimum, rawHIDobject->airValue.maximum);
-
-			writeScaling();
-		}
-		else {
-			rawHIDobject->airValue.calibratePressureRange = true;
-			resetAirCalibrate();
-		}
-	}
+//	if (x > 502 && x < 627 && y > 480 && y < 500) {
+//		if (rawHIDobject->airValue.calibratePressureRange == true) {
+//			rawHIDobject->airValue.calibratePressureRange = false;
+//			//            printf("finished calibrating air with values minimum %f maximum %f\n",rawHIDobject->airValue.minimum, rawHIDobject->airValue.maximum);
+//
+//			writeScaling();
+//		}
+//		else {
+//			rawHIDobject->airValue.calibratePressureRange = true;
+//			resetAirCalibrate();
+//		}
+//	}
 
 }
 
@@ -1216,11 +1263,11 @@ void ofApp::draw() {
 //	double yy;
 //	int pos_x;
 
-//    ofSetBackgroundColor(backgroundColorMain);
+    ofSetBackgroundColor(backgroundColorMain);
     gui.begin();
     // Main window
     {
-        ImGui::SetNextWindowSize(ImVec2(350, 40));
+        ImGui::SetNextWindowSize(ImVec2(ofGetWidth(), 40));
         ImGui::SetNextWindowPos(ImVec2(0,0));
         ImGuiWindowFlags winFlagsMain = 0;
         winFlagsMain |= ImGuiWindowFlags_NoMove;
@@ -1228,20 +1275,26 @@ void ofApp::draw() {
         winFlagsMain |= ImGuiWindowFlags_NoTitleBar;
         bool showWindowMain = true;
         ImGui::Begin("Main Window", &showWindowMain, winFlagsMain);
+        /* HID device info */
         ImGui::Text(GUIdeviceInfo.c_str());
         ImGui::SameLine(300);
-        static bool clicked = false;
-        if(clicked) {
+        /* Start/stop button */
+        bool running = rawHIDobject->rawHID.deviceOpen;
+        if(running) { // thread currently running...
             ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.8f, 0.8f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(1/7.0f, 0.9f, 0.9f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImColor::HSV(1/7.0f, 1.0f, 1.0f));
-            if(ImGui::Button("Stop")) clicked = false;
+            if(ImGui::Button("Stop")) {
+                controlHID();
+            }
         }
-        else {
+        else { // thread currently stopped, ready to start
             ImGui::PushStyleColor(ImGuiCol_Button, ImColor::HSV(1/7.0f, 0.6f, 0.6f));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImColor::HSV(1/7.0f, 0.7f, 0.7f));
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,ImColor::HSV(1/7.0f, 0.8f, 0.8f));
-            if(ImGui::Button("Start")) clicked = true;
+            if(ImGui::Button("Start")) {
+                controlHID();
+            }
         }
         ImGui::PopStyleColor(3);
         ImGui::End();
@@ -1253,7 +1306,7 @@ void ofApp::draw() {
         ImGui::SetNextWindowSize(moduleWindowSize);
         ImGui::SetNextWindowPos(moduleWindowPos);
         ImGuiWindowFlags winFlagsMod = 0;
-//        winFlagsMod |= ImGuiWindowFlags_NoMove;
+        winFlagsMod |= ImGuiWindowFlags_NoMove;
         winFlagsMod |= ImGuiWindowFlags_NoResize;
         bool showWindowMod = true;
         ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);

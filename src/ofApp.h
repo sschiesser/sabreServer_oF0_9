@@ -118,6 +118,8 @@ class ofApp : public ofBaseApp
 		void resetAirCalibrate();
 
 		void writeScaling();
+    
+    bool controlHID();
 
 		void receiveOSC();
 

@@ -141,7 +141,7 @@ public:
 	bool sendRawValues; // toggle raw values OSC sending (bandwidth management)
     int oldSendTS;
     int sendDelta;
-
+    
 	/// OSC sender addresses.
 	string imuaddresses[12];
 	string buttonaddresses[3];
@@ -219,6 +219,7 @@ public:
 	double threshUp;
 	// accelerometer-specific values
 	int accelResolution;
+    int accelRange;
 	long accelOffset;
 	double accelScale;
 	// gyroscope-specific values
