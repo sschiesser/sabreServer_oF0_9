@@ -49,10 +49,10 @@
 //--------------------------------------------------------------
 void ofApp::setup() {
 	appVersion = SERVER_VERSION;
-	titleString = "sabreServer version " + appVersion; // Text to display on the server title bar
+	titleString = "SMS-Server version " + appVersion; // Text to display on the server title bar
 	if (appDebug) {
 		printf("************************************\n");
-		printf("**   sabreServer version %s    **\n", appVersion.c_str());
+		printf("**     SMS-Server version %s      **\n", appVersion.c_str());
 		printf("************************************\n\n");
 	}
     
@@ -136,7 +136,7 @@ void ofApp::setup() {
 
 	receiver.setup(receiveport);
 
-	//	framerate = 20;
+    framerate = 20;
 	ofSetFrameRate(framerate); // cap the glut callback rate
 							   //	ofSetVerticalSync( true );
 							   //	ofBackground( 224, 224, 224);
@@ -570,7 +570,7 @@ bool ofApp::readPrefs()
 		receiveport = XML.getValue("sabre:network:receiver:port", 40001);
 
 		drawValues = XML.getValue("sabre:display", 0);
-		rawHIDobject->drawValues = drawValues = CLAMP(drawValues, 0, 1);
+        rawHIDobject->drawValues = drawValues; // = CLAMP(drawValues, 0, 1);
 
 		rawHIDobject->threshDown = XML.getValue("sabre:thresholds:down", 0.2);
 		rawHIDobject->threshUp = XML.getValue("sabre:thresholds:up", 0.8);
@@ -1309,12 +1309,16 @@ void ofApp::draw() {
     // 1. module window
     {
         // General window settings
+        moduleWindowPos.x = 0;
         ImGui::SetNextWindowSize(moduleWindowSize);
         ImGui::SetNextWindowPos(moduleWindowPos);
         ImGuiWindowFlags winFlagsMod = 0;
         winFlagsMod |= ImGuiWindowFlags_NoMove;
         winFlagsMod |= ImGuiWindowFlags_NoResize;
         bool showWindowMod = false;
+
+        ImGui::PushStyleColor(ImGuiCol_Header, ImColor::HSV(0.4f, 0.4f, 0.4f));
+
         ImGui::Begin("Module #1", &showWindowMod, winFlagsMod);
 
         // Non-collapsable elements
@@ -1322,7 +1326,7 @@ void ofApp::draw() {
             // Link quality display
             ImGui::Text("Link:");
             ImGui::SameLine();
-            float link = (float)rawHIDobject->linkQualityLeft/256.0f;
+            float link = 0.87f; //(float)rawHIDobject->linkQualityLeft/256.0f;
             char buf[32];
             sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
             ImGui::PushItemWidth(100);
@@ -1332,7 +1336,7 @@ void ofApp::draw() {
             ImGui::SameLine();
             ImGui::Text("Battery:");
             ImGui::SameLine(234);
-            float battery = (float)rawHIDobject->batteryLevelRight;
+            float battery = 0.35f; //(float)rawHIDobject->batteryLevelRight;
             ImGui::PushItemWidth(100);
             ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
             ImGui::PopItemWidth();
@@ -1342,42 +1346,42 @@ void ofApp::draw() {
         {
             if(ImGui::CollapsingHeader("OSC")) {
                 string label;
-                char txt[OSC_NUMSENDERS][128];
-                int in[OSC_NUMSENDERS];
-                bool en[OSC_NUMSENDERS];
+                char txt1[OSC_NUMSENDERS][128];
+                int in1[OSC_NUMSENDERS];
+                static bool en1[OSC_NUMSENDERS];
                 string ID;
                 for (int i = 0; i < OSC_NUMSENDERS; i++) {
                     // label
-                    label = "Sender#" + ofToString(i+1) + ":";
+                    label = "Sender#0" + ofToString(i+11) + ":";
                     ImGui::Text(label.c_str());
                     // IP
                     ImGui::Text("IP:"); ImGui::SameLine();
-                    strcpy(txt[i], rawHIDobject->sendIP[i].c_str());
-                    ID = "##txt" + ofToString(i);
+                    strcpy(txt1[i], rawHIDobject->sendIP[i].c_str());
+                    ID = "##txt0" + ofToString(i);
                     ImGui::PushItemWidth(100);
-                    if(ImGui::InputText(ID.c_str(), txt[i], IM_ARRAYSIZE(txt[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
-                        rawHIDobject->sendIP[i] = ofToString(txt[i]);
+                    if(ImGui::InputText(ID.c_str(), txt1[i], IM_ARRAYSIZE(txt1[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendIP[i] = ofToString(txt1[i]);
                         if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
                     }
                     ImGui::PopItemWidth();
                     // Port
                     ImGui::SameLine();
-                    in[i] = rawHIDobject->sendport[i];
+                    in1[i] = rawHIDobject->sendport[i];
                     ImGui::Text("Port:"); ImGui::SameLine();
-                    ID = "##in" + ofToString(i);
+                    ID = "##in0" + ofToString(i);
                     ImGui::PushItemWidth(84);
-                    if(ImGui::InputInt(ID.c_str(), &in[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
-                        rawHIDobject->sendport[i] = in[i];
+                    if(ImGui::InputInt(ID.c_str(), &in1[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendport[i] = in1[i];
                         if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
                     }
                     ImGui::PopItemWidth();
                     // Enable
                     ImGui::SameLine();
-                    en[i] = rawHIDobject->senderActive[i];
+//                    en[i] = rawHIDobject->senderActive[i];
                     ImGui::Text("En:"); ImGui::SameLine();
-                    ID = "##en" + ofToString(i);
-                    if(ImGui::Checkbox(ID.c_str(), &en[i])) {
-                        rawHIDobject->senderActive[i] = en[i];
+                    ID = "##en1" + ofToString(i);
+                    if(ImGui::Checkbox(ID.c_str(), &en1[i])) {
+//                        rawHIDobject->senderActive[i] = en[i];
                         if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
                     }
                 }
@@ -1389,7 +1393,7 @@ void ofApp::draw() {
             if(ImGui::CollapsingHeader("Accelerometer")) {
                 static float accel[4];
                 static ImVector<float> accelPlot[4];
-                static int accelPlotOffset[4] = {0, 0, 0, 0};
+                static int accelPlotOffset[4]; // = {0, 0, 0, 0};
                 // Fill the 3 accelerometer values
                 for(int i = 0; i < 4; i++) {
                     if(accelPlot[i].empty()) {
@@ -1623,7 +1627,661 @@ void ofApp::draw() {
             }
         }
         
+        ImGui::PopStyleColor();
+        
         ImGui::End();
     }
+    
+    // 2. module window
+    {
+        // General window settings
+        moduleWindowPos.x = 352;
+        ImGui::SetNextWindowSize(moduleWindowSize);
+        ImGui::SetNextWindowPos(moduleWindowPos);
+        ImGuiWindowFlags winFlagsMod = 0;
+        winFlagsMod |= ImGuiWindowFlags_NoMove;
+        winFlagsMod |= ImGuiWindowFlags_NoResize;
+        bool showWindowMod = false;
+        
+        ImGui::PushStyleColor(ImGuiCol_Header, ImColor::HSV(0.6f, 0.6f, 0.6f));
+        ImGui::Begin("Module #2", &showWindowMod, winFlagsMod);
+        
+        // Non-collapsable elements
+        {
+            // Link quality display
+            ImGui::Text("Link:");
+            ImGui::SameLine();
+            float link = 0.42f; //(float)rawHIDobject->linkQualityLeft/256.0f;
+            char buf[32];
+            sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(link, ImVec2(0.f, 0.f), buf);
+            ImGui::PopItemWidth();
+            // Battery level display
+            ImGui::SameLine();
+            ImGui::Text("Battery:");
+            ImGui::SameLine(234);
+            float battery = 0.97f; //(float)rawHIDobject->batteryLevelRight;
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
+            ImGui::PopItemWidth();
+        }
+        
+        // OSC header
+        {
+            if(ImGui::CollapsingHeader("OSC")) {
+                string label;
+                char txt2[OSC_NUMSENDERS][128];
+                int in2[OSC_NUMSENDERS];
+                static bool en2[OSC_NUMSENDERS];
+                string ID;
+                for (int i = 0; i < OSC_NUMSENDERS; i++) {
+                    // label
+                    label = "Sender#" + ofToString(i+21) + ":";
+                    ImGui::Text(label.c_str());
+                    // IP
+                    ImGui::Text("IP:"); ImGui::SameLine();
+                    strcpy(txt2[i], rawHIDobject->sendIP[i].c_str());
+                    ID = "##txt1" + ofToString(i);
+                    ImGui::PushItemWidth(100);
+                    if(ImGui::InputText(ID.c_str(), txt2[i], IM_ARRAYSIZE(txt2[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendIP[i] = ofToString(txt2[i]);
+                        if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
+                    }
+                    ImGui::PopItemWidth();
+                    // Port
+                    ImGui::SameLine();
+                    in2[i] = rawHIDobject->sendport[i];
+                    ImGui::Text("Port:"); ImGui::SameLine();
+                    ID = "##in1" + ofToString(i);
+                    ImGui::PushItemWidth(84);
+                    if(ImGui::InputInt(ID.c_str(), &in2[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendport[i] = in2[i];
+                        if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
+                    }
+                    ImGui::PopItemWidth();
+                    // Enable
+                    ImGui::SameLine();
+//                    en[i] = rawHIDobject->senderActive[i];
+                    ImGui::Text("En:"); ImGui::SameLine();
+                    ID = "##en2" + ofToString(i);
+                    if(ImGui::Checkbox(ID.c_str(), &en2[i])) {
+//                        rawHIDobject->senderActive[i] = en[i];
+                        if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
+                    }
+                }
+            }
+        }
+        
+        // Accelerometer header
+        {
+            if(ImGui::CollapsingHeader("Accelerometer")) {
+                static float accel[4];
+                static ImVector<float> accelPlot[4];
+                static int accelPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(accelPlot[i].empty()) {
+                        accelPlot[i].resize(50);
+                        memset(accelPlot[i].Data, 0, accelPlot[i].Size * sizeof(float));
+                    }
+                    accel[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[0]) : ((float)rawHIDobject->IMU[i]) );
+                    accelPlot[i][accelPlotOffset[i]] =  accel[i];
+                    accelPlotOffset[i] = (accelPlotOffset[i] + 1) % accelPlot[i].Size;
+                }
+                
+                // X
+                ImGui::Text("X"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[0].Data, accelPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[1].Data, accelPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[2].Data, accelPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelSi,Plot", accelPlot[3].Data, accelPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+            }
+        }
+        
+        // Gyroscope header
+        {
+            if(ImGui::CollapsingHeader("Gyroscope")) {
+                static float gyro[4];
+                static ImVector<float> gyroPlot[4];
+                static int gyroPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(gyroPlot[i].empty()) {
+                        gyroPlot[i].resize(50);
+                        memset(gyroPlot[i].Data, 0, gyroPlot[i].Size * sizeof(float));
+                    }
+                    gyro[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[1]) : ((float)rawHIDobject->IMU[i+3]) );
+                    gyroPlot[i][gyroPlotOffset[i]] =  gyro[i];
+                    gyroPlotOffset[i] = (gyroPlotOffset[i] + 1) % gyroPlot[i].Size;
+                }
+                // X
+                ImGui::Text("X"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroXPlot", gyroPlot[0].Data, gyroPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroYPlot", gyroPlot[1].Data, gyroPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroZPlot", gyroPlot[2].Data, gyroPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroSumPlot", gyroPlot[3].Data, gyroPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+            }
+        }
+        
+        // Heading/tilt header
+        {
+            if(ImGui::CollapsingHeader("Heading/tilt")) {
+                
+            }
+        }
+        
+        // AHRS header
+        {
+            if(ImGui::CollapsingHeader("AHRS")) {
+                
+            }
+        }
+        
+        // Buttons header
+        {
+            if(ImGui::CollapsingHeader("Buttons")) {
+                ImGui::Text(""); ImGui::SameLine(80);
+                ImGui::Checkbox("##but1", &rawHIDobject->button[0]); ImGui::SameLine(200);
+                ImGui::Checkbox("##but2", &rawHIDobject->button[1]);
+                ImGui::Text(""); ImGui::SameLine(85);
+                ImGui::Text("1"); ImGui::SameLine(205);
+                ImGui::Text("2");
+            }
+        }
+        
+        // Pressure header
+        {
+            if(ImGui::CollapsingHeader("Pressure")) {
+                static float press;
+                static ImVector<float> pVals;
+                static int pValsOffset = 0;
+                if (pVals.empty()) {
+                    pVals.resize(100);
+                    memset(pVals.Data, 0, pVals.Size * sizeof(float));
+                }
+                press = (float)rawHIDobject->air[0];
+                pVals[pValsOffset] = (float)rawHIDobject->air[0];
+                pValsOffset = (pValsOffset + 1) % pVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Pressure:");
+                ImGui::Text("%.0f mbar", rawHIDobject->air[0]);
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::VSliderFloat("##pressSlider", ImVec2(12, 80), &press, 800.0f, 1200.0f, ""); ImGui::SameLine(92);
+                ImGui::PlotLines("##pressPlot", pVals.Data, pVals.Size, 0 , "Pressure (mbar)", 800.0f, 1200.0f, ImVec2(252, 80));
+                ImGui::EndGroup();
+            }
+        }
+        
+        // Temperature header
+        {
+            if(ImGui::CollapsingHeader("Temperature")) {
+                static ImVector<float> tiVals;
+                static int tiValsOffset = 0;
+                if (tiVals.empty()) {
+                    tiVals.resize(100);
+                    memset(tiVals.Data, 0, tiVals.Size * sizeof(float));
+                }
+                tiVals[tiValsOffset] = (float)rawHIDobject->air[1];
+                tiValsOffset = (tiValsOffset + 1) % tiVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Temp:");
+                ImGui::Text("%.2f °C", rawHIDobject->air[1]);
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotLines("##temp", tiVals.Data, tiVals.Size, 0, "Temperature (°C)", 20.0f, 32.0f, ImVec2(264, 80));
+                ImGui::EndGroup();
+                
+                ImGui::Spacing();
+                ImGui::Spacing();
+                
+//                static ImVector<float> teVals;
+//                static int teValsOffset = 0;
+//                if (teVals.empty()) {
+//                    teVals.resize(100);
+//                    memset(teVals.Data, 0, teVals.Size * sizeof(float));
+//                }
+//                teVals[teValsOffset] = (float)rawHIDobject->IMU[9];
+//                teValsOffset = (teValsOffset + 1) % teVals.Size;
+//                ImGui::BeginGroup();
+//                ImGui::BeginGroup();
+//                ImGui::Text("Temp_e:");
+//                ImGui::Text("%.2f °C", rawHIDobject->IMU[9]);
+//                ImGui::EndGroup(); ImGui::SameLine(80);
+//                ImGui::PlotLines("##temp_e", teVals.Data, teVals.Size, 0, "Temperature (°C)", 20.0f, 32.0f, ImVec2(264, 80));
+//                ImGui::EndGroup();
+            }
+        }
+        
+        // Packet transmition header
+        {
+            if(ImGui::CollapsingHeader("Packets transmition")) {
+                static float plotRange = 40.f;
+                static float plotDiv = plotRange/5.f;
+                static ImVector<float> tslVals;
+                static int tslValsOffset = 0;
+                if (tslVals.empty()) {
+                    tslVals.resize(100);
+                    memset(tslVals.Data, 0, tslVals.Size * sizeof(float));
+                }
+                tslVals[tslValsOffset] = (float)rawHIDobject->deltaTimeL/1000;
+                //                tslVals[tslValsOffset] = 16.f;
+                tslValsOffset = (tslValsOffset + 1) % tslVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Delta:");
+                ImGui::Text("%.1f ms", ((float)rawHIDobject->deltaTimeL/1000));
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotHistogram("##deltaLeft", tslVals.Data, tslVals.Size, 0, "Delta left (ms)", 0.0f, plotRange, ImVec2(0, 80)); ImGui::SameLine();
+                ImGui::PushFont(fontScale);
+                ImGui::BeginGroup();
+                ImGui::Text("");
+                ImGui::Text("- %.0f", (4*plotDiv));
+                ImGui::Text("- %.0f", (3*plotDiv));
+                ImGui::Text("- %.0f", (2*plotDiv));
+                ImGui::Text("- %.0f", plotDiv);
+                ImGui::Text("- %.0f", 0.f);
+                ImGui::EndGroup();
+                ImGui::PopFont();
+                ImGui::EndGroup();
+                ImGui::Spacing();
+                ImGui::Spacing();
+                
+                static ImVector<float> tsrVals;
+                static int tsrValsOffset = 0;
+                if (tsrVals.empty()) {
+                    tsrVals.resize(100);
+                    memset(tsrVals.Data, 0, tsrVals.Size * sizeof(float));
+                }
+                tsrVals[tsrValsOffset] = ((float)rawHIDobject->deltaTimeR/1000);
+                tsrValsOffset = (tsrValsOffset + 1) % tsrVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Delta:");
+                ImGui::Text("%.1f ms", ((float)rawHIDobject->deltaTimeR/1000));
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotHistogram("##deltaRight", tsrVals.Data, tsrVals.Size, 0, "Delta right (ms)", 0.0f, plotRange, ImVec2(0, 80)); ImGui::SameLine();
+                ImGui::PushFont(fontScale);
+                ImGui::BeginGroup();
+                ImGui::Text("");
+                ImGui::Text("- %.0f", (4*plotDiv));
+                ImGui::Text("- %.0f", (3*plotDiv));
+                ImGui::Text("- %.0f", (2*plotDiv));
+                ImGui::Text("- %.0f", plotDiv);
+                ImGui::Text("- %.0f", 0.f);
+                ImGui::EndGroup();
+                ImGui::PopFont();
+                ImGui::EndGroup();
+            }
+        }
+        
+        ImGui::PopStyleColor();
+
+        ImGui::End();
+    }
+
+    // 3. module window
+    {
+        // General window settings
+        moduleWindowPos.x = 704;
+        ImGui::SetNextWindowSize(moduleWindowSize);
+        ImGui::SetNextWindowPos(moduleWindowPos);
+        ImGuiWindowFlags winFlagsMod = 0;
+        winFlagsMod |= ImGuiWindowFlags_NoMove;
+        winFlagsMod |= ImGuiWindowFlags_NoResize;
+        bool showWindowMod = false;
+        
+        ImGui::PushStyleColor(ImGuiCol_Header, ImColor::HSV(0.8f, 0.8f, 0.8f));
+        
+        ImGui::Begin("Module #3", &showWindowMod, winFlagsMod);
+        
+        // Non-collapsable elements
+        {
+            // Link quality display
+            ImGui::Text("Link:");
+            ImGui::SameLine();
+            float link = 0.7f; //(float)rawHIDobject->linkQualityLeft/256.0f;
+            char buf[32];
+            sprintf(buf, "%d/%d", (int)((link+0.09)*10), 10);
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(link, ImVec2(0.f, 0.f), buf);
+            ImGui::PopItemWidth();
+            // Battery level display
+            ImGui::SameLine();
+            ImGui::Text("Battery:");
+            ImGui::SameLine(234);
+            float battery = 0.3f; //(float)rawHIDobject->batteryLevelRight;
+            ImGui::PushItemWidth(100);
+            ImGui::ProgressBar(battery, ImVec2(0.0f, 0.0f));
+            ImGui::PopItemWidth();
+        }
+        
+        // OSC header
+        {
+            if(ImGui::CollapsingHeader("OSC")) {
+                string label;
+                char txt3[OSC_NUMSENDERS][128];
+                int in3[OSC_NUMSENDERS];
+                static bool en3[OSC_NUMSENDERS];
+                string ID;
+                for (int i = 0; i < OSC_NUMSENDERS; i++) {
+                    // label
+                    label = "Sender#" + ofToString(i+31) + ":";
+                    ImGui::Text(label.c_str());
+                    // IP
+                    ImGui::Text("IP:"); ImGui::SameLine();
+                    strcpy(txt3[i], rawHIDobject->sendIP[i].c_str());
+                    ID = "##txt3" + ofToString(i);
+                    ImGui::PushItemWidth(100);
+                    if(ImGui::InputText(ID.c_str(), txt3[i], IM_ARRAYSIZE(txt3[i]), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendIP[i] = ofToString(txt3[i]);
+                        if(appDebug) printf("New IP: %s\n", rawHIDobject->sendIP[i].c_str());
+                    }
+                    ImGui::PopItemWidth();
+                    // Port
+                    ImGui::SameLine();
+                    in3[i] = rawHIDobject->sendport[i];
+                    ImGui::Text("Port:"); ImGui::SameLine();
+                    ID = "##in3" + ofToString(i);
+                    ImGui::PushItemWidth(84);
+                    if(ImGui::InputInt(ID.c_str(), &in3[i], 1, 1, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                        rawHIDobject->sendport[i] = in3[i];
+                        if(appDebug) printf("New port: %d\n", rawHIDobject->sendport[i]);
+                    }
+                    ImGui::PopItemWidth();
+                    // Enable
+                    ImGui::SameLine();
+//                    en[i] = rawHIDobject->senderActive[i];
+                    ImGui::Text("En:"); ImGui::SameLine();
+                    ID = "##en3" + ofToString(i);
+                    if(ImGui::Checkbox(ID.c_str(), &en3[i])) {
+//                        rawHIDobject->senderActive[i] = en[i];
+                        if(appDebug) printf("Sender activated: %s\n", (rawHIDobject->senderActive[i]) ? "YES" : "NO");
+                    }
+                }
+            }
+        }
+
+        // Accelerometer header
+        {
+            if(ImGui::CollapsingHeader("Accelerometer")) {
+                static float accel[4];
+                static ImVector<float> accelPlot[4];
+                static int accelPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(accelPlot[i].empty()) {
+                        accelPlot[i].resize(50);
+                        memset(accelPlot[i].Data, 0, accelPlot[i].Size * sizeof(float));
+                    }
+                    accel[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[0]) : ((float)rawHIDobject->IMU[i]) );
+                    accelPlot[i][accelPlotOffset[i]] =  accel[i];
+                    accelPlotOffset[i] = (accelPlotOffset[i] + 1) % accelPlot[i].Size;
+                }
+                
+                // X
+                ImGui::Text("X"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[0].Data, accelPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[1].Data, accelPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelX", &accel[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelXPlot", accelPlot[2].Data, accelPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##accelSum", &accel[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##accelSi,Plot", accelPlot[3].Data, accelPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+            }
+        }
+        
+        // Gyroscope header
+        {
+            if(ImGui::CollapsingHeader("Gyroscope")) {
+                static float gyro[4];
+                static ImVector<float> gyroPlot[4];
+                static int gyroPlotOffset[4] = {0, 0, 0, 0};
+                // Fill the 3 accelerometer values
+                for(int i = 0; i < 4; i++) {
+                    if(gyroPlot[i].empty()) {
+                        gyroPlot[i].resize(50);
+                        memset(gyroPlot[i].Data, 0, gyroPlot[i].Size * sizeof(float));
+                    }
+                    gyro[i] = ( (i >= 3) ? ((float)rawHIDobject->summedIMU[1]) : ((float)rawHIDobject->IMU[i+3]) );
+                    gyroPlot[i][gyroPlotOffset[i]] =  gyro[i];
+                    gyroPlotOffset[i] = (gyroPlotOffset[i] + 1) % gyroPlot[i].Size;
+                }
+                // X
+                ImGui::Text("X"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroX", &gyro[0], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroXPlot", gyroPlot[0].Data, gyroPlot[0].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Y
+                ImGui::Text("Y"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroY", &gyro[1], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroYPlot", gyroPlot[1].Data, gyroPlot[1].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Z
+                ImGui::Text("Z"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroZ", &gyro[2], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroZPlot", gyroPlot[2].Data, gyroPlot[2].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+                // Sum
+                ImGui::Text("Sum"); ImGui::SameLine(40);
+                ImGui::PushItemWidth(140);
+                ImGui::SliderFloat("##gyroSum", &gyro[3], 0.0f, 1.0f); ImGui::SameLine();
+                ImGui::PlotLines("##gyroSumPlot", gyroPlot[3].Data, gyroPlot[3].Size, 0, "", 0.0f, 1.0f, ImVec2(0, 20));
+                ImGui::PopItemWidth();
+            }
+        }
+        
+        // Heading/tilt header
+        {
+            if(ImGui::CollapsingHeader("Heading/tilt")) {
+                
+            }
+        }
+        
+        // AHRS header
+        {
+            if(ImGui::CollapsingHeader("AHRS")) {
+                
+            }
+        }
+        
+        // Buttons header
+        {
+            if(ImGui::CollapsingHeader("Buttons")) {
+                ImGui::Text(""); ImGui::SameLine(80);
+                ImGui::Checkbox("##but1", &rawHIDobject->button[0]); ImGui::SameLine(200);
+                ImGui::Checkbox("##but2", &rawHIDobject->button[1]);
+                ImGui::Text(""); ImGui::SameLine(85);
+                ImGui::Text("1"); ImGui::SameLine(205);
+                ImGui::Text("2");
+            }
+        }
+        
+        // Pressure header
+        {
+            if(ImGui::CollapsingHeader("Pressure")) {
+                static float press;
+                static ImVector<float> pVals;
+                static int pValsOffset = 0;
+                if (pVals.empty()) {
+                    pVals.resize(100);
+                    memset(pVals.Data, 0, pVals.Size * sizeof(float));
+                }
+                press = (float)rawHIDobject->air[0];
+                pVals[pValsOffset] = (float)rawHIDobject->air[0];
+                pValsOffset = (pValsOffset + 1) % pVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Pressure:");
+                ImGui::Text("%.0f mbar", rawHIDobject->air[0]);
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::VSliderFloat("##pressSlider", ImVec2(12, 80), &press, -200.0f, 200.0f, ""); ImGui::SameLine(92);
+                ImGui::PlotLines("##pressPlot", pVals.Data, pVals.Size, 0 , "Pressure (mbar)", -200.0f, 200.0f, ImVec2(252, 80));
+                ImGui::EndGroup();
+            }
+        }
+        
+        // Temperature header
+        {
+            if(ImGui::CollapsingHeader("Temperature")) {
+                static ImVector<float> tiVals;
+                static int tiValsOffset = 0;
+                if (tiVals.empty()) {
+                    tiVals.resize(100);
+                    memset(tiVals.Data, 0, tiVals.Size * sizeof(float));
+                }
+                tiVals[tiValsOffset] = (float)rawHIDobject->air[1];
+                tiValsOffset = (tiValsOffset + 1) % tiVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Temp_i:");
+                ImGui::Text("%.2f °C", rawHIDobject->air[1]);
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotLines("##temp_i", tiVals.Data, tiVals.Size, 0, "Temperature (°C)", 20.0f, 32.0f, ImVec2(264, 80));
+                ImGui::EndGroup();
+                
+                ImGui::Spacing();
+                ImGui::Spacing();
+                
+                static ImVector<float> teVals;
+                static int teValsOffset = 0;
+                if (teVals.empty()) {
+                    teVals.resize(100);
+                    memset(teVals.Data, 0, teVals.Size * sizeof(float));
+                }
+                teVals[teValsOffset] = (float)rawHIDobject->IMU[9];
+                teValsOffset = (teValsOffset + 1) % teVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Temp_e:");
+                ImGui::Text("%.2f °C", rawHIDobject->IMU[9]);
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotLines("##temp_e", teVals.Data, teVals.Size, 0, "Temperature (°C)", 20.0f, 32.0f, ImVec2(264, 80));
+                ImGui::EndGroup();
+            }
+        }
+        
+        // Packet transmition header
+        {
+            if(ImGui::CollapsingHeader("Packets transmition")) {
+                static float plotRange = 40.f;
+                static float plotDiv = plotRange/5.f;
+                static ImVector<float> tslVals;
+                static int tslValsOffset = 0;
+                if (tslVals.empty()) {
+                    tslVals.resize(100);
+                    memset(tslVals.Data, 0, tslVals.Size * sizeof(float));
+                }
+                tslVals[tslValsOffset] = (float)rawHIDobject->deltaTimeL/1000;
+                //                tslVals[tslValsOffset] = 16.f;
+                tslValsOffset = (tslValsOffset + 1) % tslVals.Size;
+                ImGui::BeginGroup();
+                ImGui::BeginGroup();
+                ImGui::Text("Delta:");
+                ImGui::Text("%.1f ms", ((float)rawHIDobject->deltaTimeL/1000));
+                ImGui::EndGroup(); ImGui::SameLine(80);
+                ImGui::PlotHistogram("##delta", tslVals.Data, tslVals.Size, 0, "Delta (ms)", 0.0f, plotRange, ImVec2(0, 80)); ImGui::SameLine();
+                ImGui::PushFont(fontScale);
+                ImGui::BeginGroup();
+                ImGui::Text("");
+                ImGui::Text("- %.0f", (4*plotDiv));
+                ImGui::Text("- %.0f", (3*plotDiv));
+                ImGui::Text("- %.0f", (2*plotDiv));
+                ImGui::Text("- %.0f", plotDiv);
+                ImGui::Text("- %.0f", 0.f);
+                ImGui::EndGroup();
+                ImGui::PopFont();
+                ImGui::EndGroup();
+                ImGui::Spacing();
+                ImGui::Spacing();
+                
+//                static ImVector<float> tsrVals;
+//                static int tsrValsOffset = 0;
+//                if (tsrVals.empty()) {
+//                    tsrVals.resize(100);
+//                    memset(tsrVals.Data, 0, tsrVals.Size * sizeof(float));
+//                }
+//                tsrVals[tsrValsOffset] = ((float)rawHIDobject->deltaTimeR/1000);
+//                tsrValsOffset = (tsrValsOffset + 1) % tsrVals.Size;
+//                ImGui::BeginGroup();
+//                ImGui::BeginGroup();
+//                ImGui::Text("Delta:");
+//                ImGui::Text("%.1f ms", ((float)rawHIDobject->deltaTimeR/1000));
+//                ImGui::EndGroup(); ImGui::SameLine(80);
+//                ImGui::PlotHistogram("##deltaRight", tsrVals.Data, tsrVals.Size, 0, "Delta right (ms)", 0.0f, plotRange, ImVec2(0, 80)); ImGui::SameLine();
+//                ImGui::PushFont(fontScale);
+//                ImGui::BeginGroup();
+//                ImGui::Text("");
+//                ImGui::Text("- %.0f", (4*plotDiv));
+//                ImGui::Text("- %.0f", (3*plotDiv));
+//                ImGui::Text("- %.0f", (2*plotDiv));
+//                ImGui::Text("- %.0f", plotDiv);
+//                ImGui::Text("- %.0f", 0.f);
+//                ImGui::EndGroup();
+//                ImGui::PopFont();
+//                ImGui::EndGroup();
+            }
+        }
+        
+        ImGui::PopStyleColor();
+        
+        ImGui::End();
+    }
+
     gui.end();
 }

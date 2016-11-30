@@ -52,7 +52,7 @@
 #include "threadedHID.h"
 #include "sabreKeys.h"
 
-#define APP_WINDOW_WIDTH 1280
+#define APP_WINDOW_WIDTH 1054
 #define APP_WINDOW_HEIGHT 768
 #define APP_MAX_MODULES 3
 
