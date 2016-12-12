@@ -1,0 +1,15 @@
+﻿  main.cpp
+  ofApp.cpp
+  ofxRawHID.cpp
+  threadedHID.cpp
+src\ofApp.cpp(573): warning C4804: "<": unsichere Verwendung des Typs "bool" in einer Operation
+src\ofApp.cpp(573): warning C4804: ">": unsichere Verwendung des Typs "bool" in einer Operation
+src\ofApp.cpp(1052): warning C4101: "i": Unreferenzierte lokale Variable
+src\ofxRawHID.cpp(91): warning C4477: "printf": Die Formatzeichenfolge "%x" erfordert ein Argument vom Typ "unsigned int", das variadic-Argument "3" weist aber den Typ "hid_device **" auf.
+src\ofxRawHID.cpp(140): warning C4477: "printf": Die Formatzeichenfolge "%x" erfordert ein Argument vom Typ "unsigned int", das variadic-Argument "1" weist aber den Typ "hid_device **" auf.
+src\threadedHID.cpp(746): warning C4101: "z": Unreferenzierte lokale Variable
+  sabreServer.vcxproj -> C:\_code\oF\of_v0.9.0_vs_release\apps\myApps\sabreServer\bin\sabreServer_debug.exe
+  sabreServer.vcxproj -> bin\sabreServer_debug.pdb (Full PDB)
+  
+  	                   9	C:\_code\oF\of_v0.9.0_vs_release\export\vs\Win32\
+  	  *EXTRA Datei 		   45568	C:\_code\oF\of_v0.9.0_vs_release\apps\myApps\sabreServer\bin\hidapi.dll

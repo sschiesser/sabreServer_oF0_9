@@ -69,15 +69,12 @@
 #define SABRE_PRODUCTSTRING "SABRe"
 #define SABRE_USAGE 0x0100
 #define SABRE_USAGEPAGE 0xFFAB
-/* =================================
- */
+/* ================================= */
 
 /* MODIFY AT EACH VERSION CHANGE!!
- * =================================
- */
+ * ================================= */
 #define SERVER_VERSION "0.99"
-/* =================================
- */
+/* ================================= */
 
 /* Project-wide debug flag */
 #ifdef _DEBUG
@@ -141,7 +138,7 @@ class ofApp : public ofBaseApp
 		 * ---------------- */
     
     /* ofxImGui tools */
-    ofxImGui gui;
+    ofxImGui::Gui gui;
     ImVec4 backgroundColorMain;
     ImVec4 backgroundColorMod[APP_MAX_MODULES];
     ImVec2 appWindowSize;

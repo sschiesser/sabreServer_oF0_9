@@ -11,6 +11,12 @@
 *.o
 *.obj
 
+# Visual Studio stuff
+*.ilk
+*.pdb
+*.VC.*
+*.vs*
+
 # Precompiled Headers
 *.gch
 *.pch
